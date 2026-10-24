@@ -49,6 +49,28 @@ class PleosVehicleAdapter(context: Context, private val dispatch: (Action) -> Un
         subscribeLights()
         subscribeBrake()
         subscribeTelltales()
+        readCurrent()
+    }
+
+    /**
+     * 구독은 값이 바뀔 때만 온다. 그래서 앱을 켠 직후에는 브레이크·라이트가 "모름"으로 남는다 → 지금 값을 한 번 읽는다.
+     * 조회 응답보다 구독 변경이 먼저 올 수도 있지만, 둘 다 같은 순간의 차량 값이라 화면에 남는 차이는 없다고 본다.
+     * 시그니처는 SDK 2.3.2 javap로 확인했다(docs/pleos/vehicle-sdk.md).
+     */
+    private fun readCurrent() {
+        vehicle.getWiper().getCurrentWiperState(front, { state ->
+            val on = state?.let { it == WiperState.ON }
+            wiperOn = on == true
+            dispatch(Action.WiperChanged(on))
+            main.post { pollSwitchNow() }
+        }, { e -> Log.w("와이퍼 조회 실패 ${VehicleErrors.describe(e)}") })
+        val light = vehicle.getLight()
+        light.getCurrentLowBeamLightState({ dispatch(Action.LowBeamChanged(it?.let { s -> s == LightState.ON })) },
+            { e -> Log.w("하향등 조회 실패 ${VehicleErrors.describe(e)}") })
+        light.getCurrentTailLampLightState({ dispatch(Action.TailLampChanged(it?.let { s -> s == LightState.ON })) },
+            { e -> Log.w("미등 조회 실패 ${VehicleErrors.describe(e)}") })
+        vehicle.getBrake().getCurrentBrakePedalStatus({ dispatch(Action.BrakeChanged(it)) },
+            { e -> Log.w("브레이크 조회 실패 ${VehicleErrors.describe(e)}") })
     }
 
     // 와이퍼: 켜짐/꺼짐은 구독, 강도(WiperSwitch)는 구독 API가 없어서 켜져 있는 동안 조회한다

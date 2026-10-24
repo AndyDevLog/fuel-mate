@@ -1,5 +1,5 @@
 /**
- * 왼쪽 알림 패널(DOM). 글자는 DOM이 맡는다: 한글 글꼴·선명도를 시스템이 처리하고, 모델이 올 때만 바뀐다.
+ * 왼쪽 패널(DOM). 도로 지도에서는 진행 방향 앞 알림, 내 차 화면에서는 차량 신호와 내가 보내는 신호를 보여준다. 글자는 DOM이 맡는다: 한글 글꼴·선명도를 시스템이 처리하고, 모델이 올 때만 바뀐다.
  */
 import { alertColor, cssColor, palette } from "../map/palette.ts";
 import type { RenderModel } from "../render-model.ts";
@@ -12,6 +12,11 @@ export class Panel {
   private readonly status: HTMLElement;
   private readonly myCar: HTMLElement;
   private readonly notice: HTMLElement;
+  private readonly road: HTMLElement;
+  private readonly car: HTMLElement;
+  private readonly carRows: HTMLElement;
+  private readonly sending: HTMLElement;
+  private readonly legend: HTMLElement;
 
   private readonly root: HTMLElement;
 
@@ -22,22 +27,38 @@ export class Panel {
     this.status = root.querySelector("#status")!;
     this.myCar = root.querySelector("#mycar")!;
     this.notice = document.getElementById("notice")!;
-    this.drawLegend(root.querySelector("#legend")!);
+    this.road = root.querySelector("#road")!;
+    this.car = root.querySelector("#car")!;
+    this.carRows = root.querySelector("#car-rows")!;
+    this.sending = root.querySelector("#sending")!;
+    this.legend = root.querySelector("#legend")!;
+    this.drawLegend(this.legend);
   }
 
   get width(): number { return this.root.offsetWidth; }
 
   update(m: RenderModel): void {
     this.model = m;
+    const onMap = m.screen === "MAP";
+    this.road.hidden = !onMap;
+    this.car.hidden = onMap;
+    this.myCar.hidden = !onMap;
+    this.legend.hidden = !onMap;
+    this.updateCar(m);
 
     this.alerts.replaceChildren(...m.alerts.map((a) => {
       const li = document.createElement("li");
       li.style.setProperty("--c", cssColor(alertColor(a.kind)));
       const dist = document.createElement("b");
-      dist.textContent = `약 ${a.distanceText} 앞`;
+      dist.textContent = a.headline;
       const label = document.createElement("span");
       label.textContent = a.label;
       li.append(dist, label);
+      if (a.lengthText !== null) {
+        const length = document.createElement("small");
+        length.textContent = a.lengthText;
+        li.append(length);
+      }
       return li;
     }));
     this.empty.hidden = m.alerts.length > 0 || m.center === null;
@@ -53,8 +74,36 @@ export class Panel {
     this.status.textContent = `${m.online ? "실시간 연결됨" : "오프라인"} · 주변 격자 ${m.cells.length}개`;
     this.status.classList.toggle("offline", !m.online);
 
-    this.notice.hidden = m.center !== null;
+    this.notice.hidden = m.center !== null || !onMap;
     this.notice.textContent = "위치 수신 전";
+  }
+
+  private updateCar(m: RenderModel): void {
+    const c = m.myCar;
+    const onOff = (b: boolean | null) => (b === true ? "켬" : b === false ? "끔" : "-");
+    const rain = ["", "약", "중", "강"][c.rainLevel] ?? "세기 모름";
+    const rows: [string, string][] = [
+      ["와이퍼", c.wiperOn === true ? `켬 · ${c.wiperText ?? "-"}` : onOff(c.wiperOn)],
+      ["하향등", onOff(c.lowBeamOn)],
+      ["미등", onOff(c.tailLampOn)],
+      ["브레이크", c.brakePressed === true ? "밟음" : c.brakePressed === false ? "뗌" : "-"],
+      ["기어", c.gear === "UNKNOWN" ? "-" : c.gear],
+      ["경고등", c.telltales === null ? "사용할 수 없음" : c.telltales.length === 0 ? "없음" : c.telltales.join(", ")],
+    ];
+    this.carRows.replaceChildren(...rows.flatMap(([k, v]) => {
+      const dt = document.createElement("dt");
+      dt.textContent = k;
+      const dd = document.createElement("dd");
+      dd.textContent = v;
+      return [dt, dd];
+    }));
+
+    const signals: string[] = [];
+    if (c.rainLevel !== 0) signals.push(c.rainLevel === 9 ? "비 (세기 모름)" : `비 (${rain})`);
+    if (c.lowBeamOn === true) signals.push("어두움");
+    this.sending.textContent =
+      `${signals.length > 0 ? `${signals.join(" · ")} 신호를 보내는 중` : "이상 없음 신호를 보내는 중"}` +
+      ` · 급정거 감지 ${c.hardBrakes}회`;
   }
 
   fatal(message: string): void {

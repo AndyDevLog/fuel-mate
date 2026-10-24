@@ -12,6 +12,7 @@ import android.os.Bundle
 import android.os.IBinder
 import android.view.Gravity
 import android.view.View
+import android.view.Window
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
 import android.widget.Button
@@ -24,6 +25,7 @@ import io.roadsensor.location.LocationMode
 import io.roadsensor.core.model.AppState
 import io.roadsensor.core.present.DriveLine
 import io.roadsensor.core.present.RenderModels
+import io.roadsensor.core.present.Screen
 import io.roadsensor.render.MapRenderer
 import io.roadsensor.render.web.WebMapRenderer
 import io.roadsensor.service.CollectorService
@@ -32,14 +34,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 /**
  * 화면은 수집 서비스의 상태를 구독해서 그리기만 한다.
- * 정차: 렌더러(WebView + Pixi 도로 지도). 주행: 큰 글자 한 줄(네이티브 고정, docs/architecture.md 결정 2).
+ * 정차: 렌더러(WebView + Pixi). 도로 지도와 내 차 화면을 버튼으로 바꾼다. 주행: 큰 글자 한 줄(네이티브 고정, docs/architecture.md 결정 2).
  * 상태 요약 텍스트는 디버그용으로 접어 둔다(오른쪽 위 "상태" 버튼).
  */
 class MainActivity : Activity() {
@@ -50,6 +53,7 @@ class MainActivity : Activity() {
 
     private lateinit var renderer: MapRenderer
     private lateinit var controls: View
+    private lateinit var screenButton: Button
     private lateinit var locationButton: Button
     private lateinit var statusButton: Button
     private lateinit var statusPanel: View
@@ -59,6 +63,8 @@ class MainActivity : Activity() {
     private var driving = false
     private var resumed = false
     private var lastState: AppState? = null
+    /** 지금 보여줄 정차 화면. 화면만의 상태라서 스토어가 아니라 여기 둔다. */
+    private val screen = MutableStateFlow(Screen.MAP)
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -68,7 +74,7 @@ class MainActivity : Activity() {
             collect = scope.launch {
                 // 렌더러에는 렌더 모델이 바뀔 때만 보낸다(속도처럼 지도에 안 쓰는 값은 걸러진다)
                 launch {
-                    b.store.state.map(RenderModels::of).distinctUntilChanged().flowOn(Dispatchers.Default)
+                    combine(b.store.state, screen, RenderModels::of).distinctUntilChanged().flowOn(Dispatchers.Default)
                         .collect { renderer.render(it) }
                 }
                 b.store.state.collect { render(it) }
@@ -83,6 +89,8 @@ class MainActivity : Activity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 기본 제목 표시줄을 없애 앱 영역을 지도에 다 쓴다
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
         renderer = WebMapRenderer(this)
 
         // 위치 출처 전환(정차 중에만 보인다). 큰 터치 영역으로 둔다.
@@ -96,6 +104,11 @@ class MainActivity : Activity() {
                 updateLocationButton()
             }
         }
+        screenButton = Button(this).apply {
+            textSize = 20f
+            minHeight = 100
+            setOnClickListener { screen.value = if (screen.value == Screen.MAP) Screen.MY_CAR else Screen.MAP }
+        }
         statusButton = Button(this).apply {
             textSize = 20f
             minHeight = 100
@@ -104,6 +117,7 @@ class MainActivity : Activity() {
         }
         controls = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
+            addView(screenButton)
             addView(locationButton)
             addView(statusButton)
         }
@@ -135,6 +149,8 @@ class MainActivity : Activity() {
             })
             addView(driveText, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         })
+
+        scope.launch { screen.collect { screenButton.text = if (it == Screen.MAP) "내 차 보기" else "도로 지도 보기" } }
 
         val intent = Intent(this, CollectorService::class.java)
         startForegroundService(intent)

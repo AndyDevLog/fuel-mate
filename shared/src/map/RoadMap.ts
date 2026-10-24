@@ -21,8 +21,15 @@ export interface MapLayout {
 interface Pose { x: number; y: number; heading: number }
 
 const MOVE_MS = 600;
-/** 격자 사이 틈(m). 격자가 한 덩어리로 뭉개지지 않고 낱낱이 읽히게 한다. */
-const CELL_GAP_M = 10;
+/**
+ * 격자 사이 틈(화면 px). 격자가 크게 보일 때는 낱낱이 읽히게 틈을 두고,
+ * 작게 보일 때(수천 칸)는 틈을 없애서 그물처럼 보이지 않게 한다(0.5px만 둬도 안티앨리어싱으로 줄이 남는다).
+ */
+const CELL_GAP_PX = { large: 1.5, small: 0, threshold: 24 };
+/** geohash 7자리 격자의 대략 폭(m). 화면 크기 판단에만 쓴다. */
+const CELL_SIZE_M = 130;
+/** 알림 구간의 격자를 낱낱이 테두리 칠 최대 칸 수 */
+const MAX_OUTLINED_CELLS = 40;
 const ALPHA_STEPS = 20;
 
 export class RoadMap {
@@ -68,6 +75,8 @@ export class RoadMap {
     this.car.position.set(this.anchor.x, this.anchor.y);
     this.north.position.set(layout.width - 72, layout.height - 72);
     this.drawStatic();
+    // 틈은 화면 px 기준이라 축척이 바뀌면 격자를 다시 그린다
+    if (this.projection !== null && this.model !== null) this.drawCells(this.model.cells);
     this.applyPose();
     return true;
   }
@@ -160,10 +169,12 @@ export class RoadMap {
       list.push(...v);
     };
 
+    const cellPx = CELL_SIZE_M * this.pxPerM;
+    const gapM = (cellPx >= CELL_GAP_PX.threshold ? CELL_GAP_PX.large : CELL_GAP_PX.small) / this.pxPerM;
     for (const c of cells) {
       const b = geohashBounds(c.cell);
-      const x0 = p.x(b.lonLo) + CELL_GAP_M / 2, x1 = p.x(b.lonHi) - CELL_GAP_M / 2;
-      const y0 = p.y(b.latHi) + CELL_GAP_M / 2, y1 = p.y(b.latLo) - CELL_GAP_M / 2;
+      const x0 = p.x(b.lonLo) + gapM / 2, x1 = p.x(b.lonHi) - gapM / 2;
+      const y0 = p.y(b.latHi) + gapM / 2, y1 = p.y(b.latLo) - gapM / 2;
       if (c.rain > 0 && c.rainLevel !== 0) {
         push(fills, `${palette.rain[c.rainLevel]}|${step(0.3 + 0.65 * c.rain)}`, x0, y0, x1 - x0, y1 - y0);
       } else {
@@ -189,15 +200,25 @@ export class RoadMap {
     if (brakes.length > 0) bg.fill({ color: palette.brake, alpha: 0.9 });
   }
 
-  /** 알림 격자는 흰 테두리로 표시한다. 순서는 왼쪽 목록이 보여준다. */
+  /**
+   * 알림 구간: 구간의 격자는 옅고 얇은 테두리, 구간이 시작되는 격자(가장 가까운 격자)는 굵은 테두리.
+   * 구간이 [MAX_OUTLINED_CELLS]칸을 넘으면 시작 격자만 그린다(지도가 흰 그물처럼 덮이지 않게). 순서는 왼쪽 목록이 보여준다.
+   */
   private drawAlerts(alerts: AlertView[]): void {
     const p = this.projection!;
     const g = this.alertG.clear();
-    for (const cell of new Set(alerts.map((a) => a.cell))) {
+    const rect = (cell: string) => {
       const b = geohashBounds(cell);
       g.rect(p.x(b.lonLo), p.y(b.latHi), p.x(b.lonHi) - p.x(b.lonLo), p.y(b.latLo) - p.y(b.latHi));
-    }
-    if (alerts.length > 0) g.stroke({ width: 14, color: palette.alert, alpha: 0.9 });
+    };
+    const starts = new Set(alerts.map((a) => a.cell));
+    const rest = new Set(alerts.flatMap((a) => a.cells).filter((c) => !starts.has(c)));
+    // 구간이 크면(비 띠 전체 등) 칸마다 테두리를 그리면 그물이 되므로 시작 격자만 남긴다
+    if (rest.size > MAX_OUTLINED_CELLS) rest.clear();
+    for (const cell of rest) rect(cell);
+    if (rest.size > 0) g.stroke({ width: 6, color: palette.alert, alpha: 0.22 });
+    for (const cell of starts) rect(cell);
+    if (starts.size > 0) g.stroke({ width: 18, color: palette.alert, alpha: 0.95 });
   }
 
   /** 목적지가 있으면 목적지 방향 직선 띠(판정과 같은 폭). */
@@ -277,5 +298,5 @@ function sameCells(a: CellView[], b: CellView[]): boolean {
 }
 
 function sameAlerts(a: AlertView[], b: AlertView[]): boolean {
-  return a.length === b.length && a.every((x, i) => x.cell === b[i].cell && x.kind === b[i].kind);
+  return a.length === b.length && a.every((x, i) => x.kind === b[i].kind && x.cells.join() === b[i].cells.join());
 }

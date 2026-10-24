@@ -34,7 +34,7 @@ object StatusText {
         appendLine()
         appendLine("■ 도로 (주변 격자 ${s.cells.size}개)")
         if (s.alerts.isEmpty()) appendLine("  진행 방향 앞 이상 없음")
-        s.alerts.forEach { appendLine("  ${kind(it.kind)}  약 ${it.distanceM}m  ${it.cell}") }
+        s.alerts.forEach { appendLine("  ${kind(it.kind)}  약 ${it.distanceM}m  ${it.cell}  (격자 ${it.cells.size}개, ${it.lengthM}m 구간)") }
         appendLine()
         appendLine("■ 기여   급정거 감지 ${s.contribution.hardBrakes}회")
         appendLine()

@@ -153,6 +153,7 @@ data class AppState(
 - `alerts`는 리듀서가 매번 다시 계산한다. 입력은 `location`과 `cells`, 판정은 `AheadFilter`가 한다.
   - 진행 방향 앞 5km 부채꼴(±30°)을 보고, 목적지가 있으면 목적지 방향 직선 띠(좌우 1km)도 본다.
   - 거리는 직선거리이고, 화면에는 "약 2km 앞"처럼 표시한다.
+  - 같은 종류의 이웃 격자는 알림 하나(구간)로 묶는다. 거리는 구간에서 가장 가까운 격자, 비 강도는 가장 센 격자를 따른다. 비 구간 하나가 알림 칸을 다 차지하지 않게 하려는 것이다.
 - 스토어는 서비스 안에 산다. Activity는 같은 프로세스에서 서비스에 바인딩해 `StateFlow`를 받는다.
 
 ### 렌더 모델 (화면에 넘기는 값)
@@ -205,6 +206,7 @@ interface MapRenderer {
   - 격자는 기준점 둘레 m 평면에 한 번 그리고, 위치·방향이 바뀌면 컨테이너 변환만 바꾼다(heading-up). 격자는 색·투명도 묶음별로 한 경로에 모아 채운다.
   - 글자(알림 목록·범례)는 DOM이 그린다. 한글 글꼴과 선명도를 시스템이 처리한다.
   - WebGL1이 차단된 WebView라서 `WebGLRenderer`를 직접 만들어 WebGL2로 쓴다(`docs/pleos/open-questions.md`).
+  - 내 차 화면(`MY_CAR`)도 같은 WebView에서 그린다(`shared/src/twin/CarTwin.ts`). 어느 화면인지는 Activity가 정해 `RenderModel.screen`으로 넘긴다(화면만의 상태라 스토어에 넣지 않는다). 와이퍼는 켜지는 순간 두 번 쓸고 멈춘다(렌더 루프 원칙).
 
 ---
 
@@ -268,6 +270,7 @@ interface MapRenderer {
   - 이유 2: 관제 웹(React)과 프로토콜 타입을 공유할 수 있다.
   - 이유 3: 시뮬레이터도 같은 저장소에서 TypeScript로 쓴다.
 - 저장소: MVP는 메모리(격자별 15분 슬라이딩 창). 재시작하면 비워진다. 데모에는 충분하다.
+- 시뮬레이터: 비 구간(`npm run rain`, 궤적 일부)과 기상청 강수 기반(`npm run kma`, 가상 차 수천 대, [kma-rain.md](kma-rain.md)) 두 가지. 둘 다 차와 같은 업로드 API를 쓴다.
 - 실행: 데모 때는 맥에서 로컬로 실행한다. 에뮬레이터는 `adb reverse tcp:8080 tcp:8080`으로 `localhost`에 붙는다. 공개 배포는 2단계 이후에 필요하면 한다.
 - 저장소 구조(예정):
 

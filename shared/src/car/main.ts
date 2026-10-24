@@ -1,13 +1,15 @@
 /**
  * 차량 앱 WebView 진입점. Kotlin(WebMapRenderer)이 postWebMessage로 렌더 모델 JSON을 보낸다.
  *
+ * 화면은 두 개다: 도로 지도(MAP)와 내 차(MY_CAR). 어느 쪽인지는 모델의 screen이 정한다(Kotlin 쪽 버튼).
  * 렌더 루프는 필요할 때만 돈다: 새 모델이 오거나 화면 크기가 바뀌면 한 프레임을 예약하고,
- * 내 차 이동 애니메이션(0.6초)이 끝나면 멈춘다. 바뀐 게 없으면 GPU를 쓰지 않는다.
+ * 애니메이션(내 차 이동 0.6초, 와이퍼 두 번 쓸기)이 끝나면 멈춘다. 바뀐 게 없으면 GPU를 쓰지 않는다.
  * 주행 중에는 Kotlin이 WebView를 숨기고 onPause()하므로 여기까지 오지 않는다.
  */
 import { Container, WebGLRenderer, autoDetectRenderer, type Renderer } from "pixi.js";
 import { RoadMap } from "../map/RoadMap.ts";
 import { palette } from "../map/palette.ts";
+import { CarTwin } from "../twin/CarTwin.ts";
 import type { RenderModel } from "../render-model.ts";
 import { Panel } from "./panel.ts";
 import { runStress } from "./stress.ts";
@@ -27,6 +29,7 @@ const stats = { frames: 0, models: 0, lastFrameMs: 0, lastModelMs: 0 };
 
 const panel = new Panel(document.getElementById("panel")!);
 const map = new RoadMap();
+const twin = new CarTwin();
 const stage = new Container();
 let renderer: Renderer | null = null;
 let pending: RenderModel | null = null;
@@ -41,7 +44,8 @@ function invalidate(): void {
 function frame(now: number): void {
   raf = 0;
   const t0 = performance.now();
-  const animating = map.update(now);
+  // 둘 다 불러야 각자 애니메이션이 진행된다(|| 단락 평가 금지)
+  const animating = [map.update(now), twin.update(now)].some(Boolean);
   renderer!.render(stage);
   stats.frames++;
   stats.lastFrameMs = performance.now() - t0;
@@ -56,7 +60,13 @@ function apply(model: RenderModel): void {
   panel.update(model);
   if (renderer === null) { pending = model; return; }
   const t0 = performance.now();
-  const dirty = map.setModel(model, performance.now());
+  const now = performance.now();
+  const showMap = model.screen === "MAP";
+  const switched = map.root.visible !== showMap;
+  map.root.visible = showMap;
+  twin.root.visible = !showMap;
+  const dirty = [map.setModel(model, now), twin.setState(model.myCar, now), switched].some(Boolean);
+  if (switched && !showMap) twin.enter(now);
   stats.models++;
   stats.lastModelMs = performance.now() - t0;
   if (dirty) invalidate();
@@ -65,7 +75,8 @@ function apply(model: RenderModel): void {
 function layout(): void {
   if (renderer === null) return;
   renderer.resize(window.innerWidth, window.innerHeight);
-  if (map.layout({ width: window.innerWidth, height: window.innerHeight, insetLeft: panel.width })) invalidate();
+  const l = { width: window.innerWidth, height: window.innerHeight, insetLeft: panel.width };
+  if ([map.layout(l), twin.layout(l)].some(Boolean)) invalidate();
 }
 
 window.roadSensor = {
@@ -113,7 +124,8 @@ async function start(): Promise<void> {
   }
   console.info(`renderer ${renderer.name} ${renderer instanceof WebGLRenderer ? `webgl${renderer.context.webGLVersion}` : ""}`);
   document.getElementById("map")!.appendChild(renderer.canvas);
-  stage.addChild(map.root);
+  twin.root.visible = false;
+  stage.addChild(map.root, twin.root);
   layout();
   if (pending !== null) { const m = pending; pending = null; apply(m); }
   invalidate();

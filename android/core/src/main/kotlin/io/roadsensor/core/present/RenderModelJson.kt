@@ -34,12 +34,27 @@ object RenderModelJson {
             append(",\"cell\":").str(a.cell)
             append(",\"distanceM\":").append(a.distanceM)
             append(",\"distanceText\":").str(a.distanceText)
-            append(",\"label\":").str(a.label).append('}')
+            append(",\"label\":").str(a.label)
+            append(",\"headline\":").str(a.headline)
+            append(",\"here\":").append(a.here)
+            append(",\"cells\":[")
+            a.cells.forEachIndexed { j, c -> if (j > 0) append(','); str(c) }
+            append("],\"lengthText\":")
+            if (a.lengthText == null) append("null") else str(a.lengthText)
+            append('}')
         }
-        append("],\"myCar\":{\"wiperOn\":").append(m.myCar.wiperOn)
-        append(",\"rainLevel\":").append(m.myCar.rainLevel.code)
-        append(",\"lowBeamOn\":").append(m.myCar.lowBeamOn)
-        append(",\"brakePressed\":").append(m.myCar.brakePressed).append('}')
+        val car = m.myCar
+        append("],\"myCar\":{\"wiperOn\":").append(car.wiperOn)
+        append(",\"wiperText\":"); if (car.wiperText == null) append("null") else str(car.wiperText)
+        append(",\"rainLevel\":").append(car.rainLevel.code)
+        append(",\"lowBeamOn\":").append(car.lowBeamOn)
+        append(",\"tailLampOn\":").append(car.tailLampOn)
+        append(",\"brakePressed\":").append(car.brakePressed)
+        append(",\"gear\":").str(car.gear.name)
+        append(",\"telltales\":")
+        if (car.telltales == null) append("null")
+        else { append('['); car.telltales.forEachIndexed { i, t -> if (i > 0) append(','); str(t) }; append(']') }
+        append(",\"hardBrakes\":").append(car.hardBrakes).append('}')
         append(",\"online\":").append(m.online)
         append('}')
     }

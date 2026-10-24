@@ -70,6 +70,12 @@ class ReducerTest {
         val short = s.apply(Action.DriveModeChanged(true, 80 or DriveMode.LIMIT_STRING_LENGTH))
         assertEquals("2.5km 비", DriveLine.of(short))
         assertEquals("앞쪽 도로 이상 없음", DriveLine.of(AppState()))
+
+        // 이미 구간 안이면 거리 대신 "지금"과 앞으로 이어지는 길이
+        val inside = AppState(alerts = listOf(RoadAlert(AlertKind.RAIN, "wydm9qk", 60, RainLevel.HEAVY, lengthM = 4_900, here = true)))
+        assertEquals("지금 비 (강) · 약 4.9km 계속", DriveLine.of(inside))
+        assertEquals("지금 비", DriveLine.of(inside.copy(drive = DriveMode(true, DriveMode.LIMIT_STRING_LENGTH))))
+        assertEquals("지금 비 (강)", DriveLine.of(AppState(alerts = listOf(RoadAlert(AlertKind.RAIN, "wydm9qk", 60, RainLevel.HEAVY, here = true)))))
     }
 
     @Test

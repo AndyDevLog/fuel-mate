@@ -95,4 +95,50 @@ class GeoTest {
         val drizzleFew = rainCell(pangyo).copy(rainRatio = 0.1f)
         assertTrue(AheadFilter.alerts(fix(heading = 140f), null, listOf(drizzleFew)).isEmpty())
     }
+
+    /** 시흥동 → 판교역 직선의 [from, to] 구간을 30m 간격으로 훑은 격자들(시뮬레이터 cellsAlong과 같은 방식). */
+    private fun cellsAlong(from: Double, to: Double, level: RainLevel = RainLevel.MODERATE): List<CellState> {
+        val out = linkedMapOf<String, CellState>()
+        var t = from
+        while (t <= to) {
+            val p = GeoPoint(sihung.lat + (pangyo.lat - sihung.lat) * t, sihung.lon + (pangyo.lon - sihung.lon) * t)
+            val c = rainCell(p, level)
+            out.getOrPut(c.cell) { c }
+            t += 30.0 / 2_543
+        }
+        return out.values.toList()
+    }
+
+    @Test
+    fun `이어진 비 격자는 알림 하나로 묶는다`() {
+        val zone = cellsAlong(0.4, 0.9)
+        assertTrue(zone.size > 5)
+        val alerts = AheadFilter.alerts(fix(heading = 140f), null, zone)
+        val a = alerts.single()
+        assertEquals(zone.size, a.cells.size)
+        assertEquals(a.cell, a.cells.first())
+        // 시작은 약 1km 앞, 길이는 약 1.27km(구간 0.4~0.9 × 2.54km)
+        assertTrue(a.distanceM in 900..1_150, "시작 ${a.distanceM}")
+        assertTrue(a.lengthM in 1_100..1_400, "길이 ${a.lengthM}")
+    }
+
+    @Test
+    fun `떨어진 비 구간은 따로 알리고, 구간 강도는 가장 센 격자를 따른다`() {
+        val near = cellsAlong(0.2, 0.3, RainLevel.LIGHT) + cellsAlong(0.31, 0.31, RainLevel.HEAVY)
+        val far = cellsAlong(0.7, 0.8)
+        val alerts = AheadFilter.alerts(fix(heading = 140f), null, near + far)
+        assertEquals(2, alerts.size)
+        assertEquals(RainLevel.HEAVY, alerts[0].rainLevel)
+        assertEquals(RainLevel.MODERATE, alerts[1].rainLevel)
+        assertTrue(alerts[0].distanceM < alerts[1].distanceM)
+    }
+
+    @Test
+    fun `내 차 격자가 든 구간은 이미 구간 안이다`() {
+        val zone = cellsAlong(0.0, 0.5)
+        val inside = AheadFilter.alerts(fix(heading = 140f), null, zone).single()
+        assertTrue(inside.here)
+        val ahead = AheadFilter.alerts(fix(heading = 140f), null, cellsAlong(0.4, 0.9)).single()
+        assertTrue(!ahead.here)
+    }
 }

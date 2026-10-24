@@ -6,6 +6,7 @@ import io.roadsensor.core.model.AppState
 import io.roadsensor.core.model.CellState
 import io.roadsensor.core.model.GeoFix
 import io.roadsensor.core.model.GeoPoint
+import io.roadsensor.core.model.Gear
 import io.roadsensor.core.model.LocationOrigin
 import io.roadsensor.core.model.RainLevel
 import io.roadsensor.core.store.Action
@@ -51,8 +52,10 @@ class RenderModelTest {
         val m = RenderModels.of(s)
         assertEquals(listOf(AlertKind.RAIN, AlertKind.HARD_BRAKE), m.alerts.map { it.kind })
         val first = m.alerts.first()
-        assertEquals("약 ${first.distanceText} 앞 ${first.label}", DriveLine.of(s))
+        assertEquals("${first.headline} ${first.label}", DriveLine.of(s))
+        assertEquals("약 ${first.distanceText} 앞", first.headline)
         assertEquals("비 (중)", first.label)
+        assertEquals(null, first.lengthText) // 격자 한 칸
         assertEquals(140f, m.heading)
         assertEquals(here, m.center)
         assertEquals(true, m.online)
@@ -86,17 +89,36 @@ class RenderModelTest {
             destination = null,
             ahead = AheadView(5000, 30, 1000),
             cells = listOf(CellView("wydm9qk", 0.5f, RainLevel.HEAVY, 0f, 0.4f)),
-            alerts = listOf(AlertView(AlertKind.RAIN, "wydm9qk", 1200, "1.2km", "비 \"강\"")),
-            myCar = MyCarView(true, RainLevel.LIGHT, null, false),
+            alerts = listOf(AlertView(AlertKind.RAIN, "wydm9qk", 1200, "1.2km", "비 \"강\"", "약 1.2km 앞", false, listOf("wydm9qk", "wydm9qs"), "400m 구간")),
+            myCar = MyCarView(true, "연속 1", RainLevel.LIGHT, null, true, false, Gear.P, listOf("ABS ON"), 2),
             online = true,
         )
         assertEquals(
             """{"v":1,"screen":"MAP","center":{"lat":37.5,"lon":127.0},"heading":90.0,"destination":null,""" +
                 """"ahead":{"radiusM":5000,"halfAngleDeg":30,"corridorHalfWidthM":1000},""" +
                 """"cells":[{"cell":"wydm9qk","rain":0.5,"rainLevel":3,"dark":0.0,"brake":0.4}],""" +
-                """"alerts":[{"kind":"RAIN","cell":"wydm9qk","distanceM":1200,"distanceText":"1.2km","label":"비 \"강\""}],""" +
-                """"myCar":{"wiperOn":true,"rainLevel":1,"lowBeamOn":null,"brakePressed":false},"online":true}""",
+                """"alerts":[{"kind":"RAIN","cell":"wydm9qk","distanceM":1200,"distanceText":"1.2km","label":"비 \"강\"","headline":"약 1.2km 앞","here":false,""" +
+                """"cells":["wydm9qk","wydm9qs"],"lengthText":"400m 구간"}],""" +
+                """"myCar":{"wiperOn":true,"wiperText":"연속 1","rainLevel":1,"lowBeamOn":null,"tailLampOn":true,""" +
+                """"brakePressed":false,"gear":"P","telltales":["ABS ON"],"hardBrakes":2},"online":true}""",
             RenderModelJson.encode(m),
         )
+    }
+
+    @Test
+    fun `내 차 화면은 와이퍼 스위치 문구를 보여주고 경고등 사용 불가와 없음을 구분한다`() {
+        val s = AppState().apply(
+            Action.WiperChanged(true), Action.WiperSwitchChanged("CONTINUOUS_LEVEL_3"),
+            Action.GearChanged(Gear.D), Action.TelltalesChanged(null),
+        )
+        val car = RenderModels.of(s, Screen.MY_CAR).myCar
+        assertEquals("연속 3", car.wiperText)
+        assertEquals(RainLevel.MODERATE, car.rainLevel)
+        assertEquals(Gear.D, car.gear)
+        assertNull(car.telltales)
+        assertEquals(emptyList(), RenderModels.of(s.apply(Action.TelltalesChanged(emptyList()))).myCar.telltales)
+        assertEquals("간헐 2", RenderModels.wiperText("INTERMITTENT_LEVEL_2"))
+        assertEquals("자동", RenderModels.wiperText("AUTO"))
+        assertEquals("SERVICE", RenderModels.wiperText("SERVICE"))
     }
 }

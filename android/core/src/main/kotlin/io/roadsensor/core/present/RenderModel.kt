@@ -5,7 +5,9 @@ import io.roadsensor.core.model.AlertKind
 import io.roadsensor.core.model.AppState
 import io.roadsensor.core.model.CellState
 import io.roadsensor.core.model.GeoPoint
+import io.roadsensor.core.model.Gear
 import io.roadsensor.core.model.RainLevel
+import io.roadsensor.core.model.RoadAlert
 
 /**
  * 렌더러에 넘기는 값(docs/architecture.md 4장 "렌더 모델").
@@ -41,21 +43,38 @@ data class CellView(
     val brake: Float,
 )
 
-/** 알림 한 줄. 문구는 주행 모드 한 줄(DriveLine)과 같은 규칙으로 여기서 만든다. */
+/**
+ * 알림 한 줄(이웃 격자를 묶은 구간 하나). 문구는 주행 모드 한 줄(DriveLine)과 같은 규칙으로 여기서 만든다.
+ * headline: "약 1km 앞" 또는 이미 구간 안이면 "지금 여기".
+ * lengthText: "400m 구간" 또는 구간 안이면 "약 4.9km 계속". 짧은 구간은 null.
+ */
 data class AlertView(
     val kind: AlertKind,
     val cell: String,
     val distanceM: Int,
     val distanceText: String,
     val label: String,
+    val headline: String,
+    val here: Boolean,
+    val cells: List<String>,
+    val lengthText: String?,
 )
 
-/** 내 차 상태(트윈 화면용). null = 아직 못 받음. */
+/**
+ * 내 차 상태(내 차 화면용). null = 아직 못 받음.
+ * telltales: null = 경고등 API를 쓸 수 없음(권한), 빈 목록 = 켜진 경고등 없음.
+ * hardBrakes: 이번 실행에서 내 차가 감지해 보낸 급정거 수(내 기여 표시, docs/architecture.md 6-1).
+ */
 data class MyCarView(
     val wiperOn: Boolean?,
+    val wiperText: String?,
     val rainLevel: RainLevel,
     val lowBeamOn: Boolean?,
+    val tailLampOn: Boolean?,
     val brakePressed: Boolean?,
+    val gear: Gear,
+    val telltales: List<String>?,
+    val hardBrakes: Int,
 )
 
 object RenderModels {
@@ -69,8 +88,8 @@ object RenderModels {
         destination = state.destination,
         ahead = AHEAD,
         cells = state.cells.values.sortedBy { it.cell }.map(::cellView),
-        alerts = state.alerts.map { AlertView(it.kind, it.cell, it.distanceM, DriveLine.distance(it.distanceM), DriveLine.label(it)) },
-        myCar = MyCarView(state.vehicle.wiperOn, state.rainLevel, state.vehicle.lowBeamOn, state.vehicle.brakePressed),
+        alerts = state.alerts.map(::alertView),
+        myCar = myCarView(state),
         online = state.link.feedConnected,
     )
 
@@ -79,6 +98,41 @@ object RenderModels {
         AheadFilter.CONE_HALF_ANGLE_DEG.toInt(),
         AheadFilter.CORRIDOR_HALF_WIDTH_M.toInt(),
     )
+
+    private fun alertView(a: RoadAlert) = AlertView(
+        kind = a.kind,
+        cell = a.cell,
+        distanceM = a.distanceM,
+        distanceText = DriveLine.distance(a.distanceM),
+        label = DriveLine.label(a),
+        headline = DriveLine.headline(a),
+        here = a.here,
+        cells = a.cells,
+        lengthText = DriveLine.zoneAhead(a),
+    )
+
+    private fun myCarView(s: AppState) = MyCarView(
+        wiperOn = s.vehicle.wiperOn,
+        wiperText = wiperText(s.vehicle.wiperSwitch),
+        rainLevel = s.rainLevel,
+        lowBeamOn = s.vehicle.lowBeamOn,
+        tailLampOn = s.vehicle.tailLampOn,
+        brakePressed = s.vehicle.brakePressed,
+        gear = s.vehicle.gear,
+        telltales = s.vehicle.telltales?.map { "${it.type} ${it.state}" },
+        hardBrakes = s.contribution.hardBrakes,
+    )
+
+    /** WiperSwitch 이름(RainClassifier 참고) → 화면 문구. 모르는 값은 그대로 보여준다. */
+    internal fun wiperText(switch: String?): String? = when {
+        switch == null -> null
+        switch == "OFF" -> "꺼짐"
+        switch == "MIST" -> "안개"
+        switch == "AUTO" -> "자동"
+        switch.startsWith("INTERMITTENT_LEVEL_") -> "간헐 ${switch.removePrefix("INTERMITTENT_LEVEL_")}"
+        switch.startsWith("CONTINUOUS_LEVEL_") -> "연속 ${switch.removePrefix("CONTINUOUS_LEVEL_")}"
+        else -> switch
+    }
 
     private fun cellView(c: CellState) = CellView(
         cell = c.cell,

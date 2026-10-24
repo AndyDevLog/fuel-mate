@@ -20,6 +20,16 @@
       background: rgba(255, 255, 255, 0.04); border-left: 8px solid var(--c); }
     #alerts b { font-size: clamp(20px, 3.4vh, 36px); font-weight: 700; white-space: nowrap; }
     #alerts span { font-size: clamp(18px, 3vh, 32px); white-space: nowrap; }
+    #alerts small { font-size: clamp(14px, 2.2vh, 24px); color: var(--sub); white-space: nowrap; }
+    section { display: flex; flex-direction: column; gap: 2vh; min-height: 0; }
+    section[hidden], [hidden] { display: none !important; }
+    #car-rows { display: grid; grid-template-columns: auto 1fr; gap: 1.2vh 24px; margin: 0; font-size: clamp(18px, 3vh, 30px); }
+    #car-rows dt { color: var(--sub); }
+    #car-rows dd { margin: 0; }
+    .note { padding: 1.6vh 18px; border-radius: 12px; background: rgba(77, 225, 255, 0.08); border-left: 8px solid #4de1ff;
+      font-size: clamp(16px, 2.6vh, 26px); }
+    .note p { margin: 0.8vh 0 0; }
+    .note .sub { color: var(--sub); font-size: clamp(13px, 1.9vh, 20px); }
     #empty { margin: 0; font-size: clamp(18px, 3vh, 32px); color: var(--sub); }
     footer { margin-top: auto; display: flex; flex-direction: column; gap: 1.2vh; font-size: clamp(14px, 2vh, 22px); color: var(--sub); }
     #mycar { display: flex; flex-wrap: wrap; gap: 10px; }
@@ -38,9 +48,20 @@
   <div id="map"></div>
   <p id="notice" hidden></p>
   <aside id="panel">
-    <h1>진행 방향 앞</h1>
-    <ol id="alerts"></ol>
-    <p id="empty" hidden></p>
+    <section id="road">
+      <h1>진행 방향 앞</h1>
+      <ol id="alerts"></ol>
+      <p id="empty" hidden></p>
+    </section>
+    <section id="car" hidden>
+      <h1>내 차</h1>
+      <dl id="car-rows"></dl>
+      <div class="note">
+        <b>내가 보내는 신호</b>
+        <p id="sending"></p>
+        <p class="sub">원본 위치 대신 약 150m 격자 ID만 보냅니다. 같은 격자를 지난 차가 3대 이상일 때만 지도에 나타납니다.</p>
+      </div>
+    </section>
     <footer>
       <div id="mycar"></div>
       <div id="legend"></div>
