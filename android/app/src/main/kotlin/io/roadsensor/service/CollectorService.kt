@@ -17,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import java.io.File
 import io.roadsensor.core.geo.Geohash
 import io.roadsensor.core.model.GeoFix
 import io.roadsensor.core.model.GeoPoint
@@ -82,7 +83,7 @@ class CollectorService : Service() {
         locationMode = LocationMode.load(this)
         location = createLocation(locationMode).also { it.start(locationSink) }
 
-        Uploader(store, BuildConfig.SERVER_URL, scope).start()
+        Uploader(store, BuildConfig.SERVER_URL, scope, File(filesDir, "upload-queue.txt")).start()
         mapFeed = MapFeed(store, BuildConfig.SERVER_URL, scope).also { it.start() }
     }
 
