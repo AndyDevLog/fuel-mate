@@ -35,4 +35,6 @@ dependencies {
     implementation("ai.pleos.playground:Vehicle:2.3.2")
     implementation("ai.pleos.playground:NaviHelper:3.0.5")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
+    // WebSocket 구독(MapFeed). Apache License 2.0
+    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

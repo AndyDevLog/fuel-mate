@@ -82,6 +82,24 @@ class ReducerTest {
     }
 
     @Test
+    fun `구독이 끊기면 받은 격자와 알림을 비운다`() {
+        val here = GeoPoint(37.4127212, 127.094681)
+        val pangyo = GeoPoint(37.39479166, 127.11256944)
+        val cell = CellState(Geohash.encode(pangyo), 5, 0.8f, RainLevel.HEAVY, 0f, 0, 0)
+        val s = AppState().apply(
+            Action.FeedStatusChanged(true),
+            Action.LocationFixed(GeoFix(here, 140f, 0, LocationOrigin.DEMO_TRACK)),
+            Action.CellsUpdated(listOf(cell), emptyList()),
+            Action.UploadStatusChanged(ok = true, pending = 2),
+        )
+        assertEquals(1, s.alerts.size)
+        val down = s.apply(Action.FeedStatusChanged(false))
+        assertTrue(down.cells.isEmpty() && down.alerts.isEmpty())
+        assertEquals(false, down.link.feedConnected)
+        assertEquals(true, down.link.uploadOk)
+    }
+
+    @Test
     fun `경고등 API를 못 쓰면 null로 남는다`() {
         assertNull(AppState().apply(Action.TelltalesChanged(null)).vehicle.telltales)
     }

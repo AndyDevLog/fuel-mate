@@ -1,7 +1,6 @@
 package io.roadsensor.net
 
 import io.roadsensor.Log
-import io.roadsensor.core.model.LinkStatus
 import io.roadsensor.core.protocol.Observation
 import io.roadsensor.core.protocol.Protocol
 import io.roadsensor.core.store.Action
@@ -33,7 +32,7 @@ class Uploader(
     private val builder = ObservationBuilder()
     private val tempId = TempIdRotator(::randomId)
     private val queue = ArrayDeque<Observation>()
-    @Volatile private var connected = false
+    @Volatile private var lastOk = false
 
     fun start() {
         scope.launch {
@@ -57,7 +56,7 @@ class Uploader(
             while (queue.size > MAX_QUEUE) queue.removeFirst()
             queue.size
         }
-        store.dispatch(Action.LinkChanged(LinkStatus(connected, pending)))
+        store.dispatch(Action.UploadStatusChanged(lastOk, pending))
     }
 
     /** 성공했거나 보낼 게 없으면 true. */
@@ -79,8 +78,8 @@ class Uploader(
             queue.size
         }
         if (ok) Log.i("업로드 ${batch.size}개 (대기 $pending)")
-        connected = ok
-        store.dispatch(Action.LinkChanged(LinkStatus(ok, pending)))
+        lastOk = ok
+        store.dispatch(Action.UploadStatusChanged(ok, pending))
         return ok
     }
 

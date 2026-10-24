@@ -1,0 +1,14 @@
+{
+  "name": "road-sensor-simulator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "데모용 가상 차량: 궤적 일부 구간에 와이퍼를 켠 차들을 서버에 업로드한다",
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "rain": "node src/rain-zone.ts",
+    "test": "node --test test/*.test.ts"
+  }
+}

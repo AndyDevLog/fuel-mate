@@ -11,6 +11,7 @@ import android.os.Binder
 import android.os.IBinder
 import io.roadsensor.BuildConfig
 import io.roadsensor.Log
+import io.roadsensor.net.MapFeed
 import io.roadsensor.net.Uploader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,6 +45,7 @@ class CollectorService : Service() {
     private lateinit var carApi: CarApiAdapter
     private lateinit var location: LocationSource
     private lateinit var locationMode: LocationMode
+    private lateinit var mapFeed: MapFeed
 
     inner class LocalBinder : Binder() {
         val store: Store get() = this@CollectorService.store
@@ -81,6 +83,7 @@ class CollectorService : Service() {
         location = createLocation(locationMode).also { it.start(locationSink) }
 
         Uploader(store, BuildConfig.SERVER_URL, scope).start()
+        mapFeed = MapFeed(store, BuildConfig.SERVER_URL, scope).also { it.start() }
     }
 
     private fun createLocation(mode: LocationMode): LocationSource = when (mode) {
@@ -102,6 +105,7 @@ class CollectorService : Service() {
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onDestroy() {
+        mapFeed.stop()
         scope.cancel()
         location.stop()
         carApi.stop()

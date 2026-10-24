@@ -29,7 +29,10 @@ object StatusText {
         appendLine("  방향      ${s.location?.headingDeg?.roundToInt()?.let { "$it°" } ?: "-"}")
         appendLine("  목적지    ${if (s.destination != null) "있음 (격자 ${Geohash.encode(s.destination!!)})" else "없음"}")
         appendLine()
-        appendLine("■ 도로 (서버 연결 ${if (s.link.connected) "됨" else "안 됨"}, 주변 격자 ${s.cells.size}개)")
+        val upload = when (s.link.uploadOk) { true -> "정상"; false -> "실패"; null -> "대기" }
+        appendLine("■ 서버   업로드 $upload (대기 ${s.link.pendingUploads}개)   지도 구독 ${if (s.link.feedConnected) "연결됨" else "끊김"}")
+        appendLine()
+        appendLine("■ 도로 (주변 격자 ${s.cells.size}개)")
         if (s.alerts.isEmpty()) appendLine("  진행 방향 앞 이상 없음")
         s.alerts.forEach { appendLine("  ${kind(it.kind)}  약 ${it.distanceM}m  ${it.cell}") }
         appendLine()

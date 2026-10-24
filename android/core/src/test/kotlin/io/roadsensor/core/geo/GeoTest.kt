@@ -30,6 +30,25 @@ class GeoTest {
     }
 
     @Test
+    fun `구독 타일은 내 타일과 둘레 8칸`() {
+        val tiles = Geohash.tilesAround(sihung)
+        assertEquals(9, tiles.size)
+        assertTrue(Geohash.encode(sihung, Geohash.TILE_PRECISION) in tiles)
+        assertTrue(tiles.all { it.length == Geohash.TILE_PRECISION })
+        // 둘레 타일 중심은 내 타일 중심에서 한 칸(약 4~5km) 거리
+        val mine = Geohash.center(Geohash.encode(sihung, 5))
+        val far = tiles.map { GeoMath.distanceM(mine, Geohash.center(it)) }.max()
+        assertTrue(far in 5_000.0..8_000.0, "대각선 $far")
+    }
+
+    @Test
+    fun `5자리 타일 크기`() {
+        val (dLat, dLon) = Geohash.span(5)
+        assertEquals(0.0439453125, dLat, 1e-12)
+        assertEquals(0.0439453125, dLon, 1e-12)
+    }
+
+    @Test
     fun `격자 중심은 원래 점에서 150m 격자 안쪽`() {
         val center = Geohash.center(Geohash.encode(sihung))
         assertTrue(GeoMath.distanceM(sihung, center) < 120)

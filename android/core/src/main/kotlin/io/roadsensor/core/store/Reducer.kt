@@ -54,7 +54,12 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
         state.copy(cells = cells).withAlerts()
     }
 
-    is Action.LinkChanged -> state.copy(link = action.link)
+    is Action.UploadStatusChanged -> state.copy(link = state.link.copy(uploadOk = action.ok, pendingUploads = action.pending))
+
+    // 구독이 끊기면 받은 격자는 오래된 정보가 되므로 비운다(알림도 같이 사라진다)
+    is Action.FeedStatusChanged ->
+        if (action.connected) state.copy(link = state.link.copy(feedConnected = true))
+        else state.copy(link = state.link.copy(feedConnected = false), cells = emptyMap()).withAlerts()
 }
 
 private inline fun AppState.withVehicle(change: VehicleSnapshot.() -> VehicleSnapshot) =

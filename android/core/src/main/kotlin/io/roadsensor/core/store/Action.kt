@@ -4,7 +4,6 @@ import io.roadsensor.core.model.CellState
 import io.roadsensor.core.model.Gear
 import io.roadsensor.core.model.GeoFix
 import io.roadsensor.core.model.GeoPoint
-import io.roadsensor.core.model.LinkStatus
 import io.roadsensor.core.model.Telltale
 
 /** 스토어에 들어오는 모든 변화. 어댑터는 SDK 값을 이 타입으로 바꿔서 넣기만 한다. */
@@ -29,5 +28,6 @@ sealed interface Action {
 
     // 서버
     data class CellsUpdated(val updated: List<CellState>, val expired: List<String>) : Action
-    data class LinkChanged(val link: LinkStatus) : Action
+    data class UploadStatusChanged(val ok: Boolean, val pending: Int) : Action
+    data class FeedStatusChanged(val connected: Boolean) : Action
 }

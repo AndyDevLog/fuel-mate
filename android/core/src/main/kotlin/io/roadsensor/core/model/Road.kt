@@ -45,6 +45,14 @@ sealed interface RoadEvent {
     ) : RoadEvent
 }
 
-data class LinkStatus(val connected: Boolean = false, val pendingUploads: Int = 0)
+/**
+ * 서버 연결 상태. 업로드(HTTP)와 구독(WebSocket)은 따로 끊길 수 있어서 나눠 둔다.
+ * uploadOk: null = 아직 한 번도 안 보냄.
+ */
+data class LinkStatus(
+    val uploadOk: Boolean? = null,
+    val pendingUploads: Int = 0,
+    val feedConnected: Boolean = false,
+)
 
 data class Contribution(val hardBrakes: Int = 0, val rainyMinutes: Int = 0)

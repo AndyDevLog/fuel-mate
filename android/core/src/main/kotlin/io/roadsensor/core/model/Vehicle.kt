@@ -2,7 +2,11 @@ package io.roadsensor.core.model
 
 /** 와이퍼 강도로 추정한 비의 세기. code는 서버 프로토콜 값(docs/architecture.md 6-2). */
 enum class RainLevel(val code: Int) {
-    NONE(0), LIGHT(1), MODERATE(2), HEAVY(3), UNKNOWN(9)
+    NONE(0), LIGHT(1), MODERATE(2), HEAVY(3), UNKNOWN(9);
+
+    companion object {
+        fun fromCode(code: Int): RainLevel = entries.firstOrNull { it.code == code } ?: UNKNOWN
+    }
 }
 
 enum class Gear { P, R, N, D, UNKNOWN }

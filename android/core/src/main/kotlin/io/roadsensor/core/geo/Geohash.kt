@@ -33,6 +33,27 @@ object Geohash {
 
     fun encode(p: GeoPoint, precision: Int = CELL_PRECISION) = encode(p.lat, p.lon, precision)
 
+    /** 이 정밀도 격자 하나의 크기(위도 폭, 경도 폭). */
+    fun span(precision: Int): Pair<Double, Double> {
+        val bits = precision * 5
+        val lonBits = (bits + 1) / 2
+        val latBits = bits / 2
+        return 180.0 / (1 shl latBits) to 360.0 / (1 shl lonBits)
+    }
+
+    /** [p]가 들어 있는 타일과 둘레 8칸, 총 9개(구독 단위, docs/architecture.md 3-5). */
+    fun tilesAround(p: GeoPoint, precision: Int = TILE_PRECISION): Set<String> {
+        val center = center(encode(p, precision))
+        val (dLat, dLon) = span(precision)
+        return buildSet {
+            for (i in -1..1) for (j in -1..1) {
+                val lat = (center.lat + i * dLat).coerceIn(-89.999999, 89.999999)
+                val lon = ((center.lon + j * dLon + 540) % 360) - 180
+                add(encode(lat, lon, precision))
+            }
+        }
+    }
+
     /** 격자 중심점. */
     fun center(hash: String): GeoPoint {
         var latLo = -90.0; var latHi = 90.0
