@@ -23,3 +23,6 @@ keystore.properties
 # Node (서버·관제 웹)
 node_modules/
 dist/
+
+# 기획서: 원문(docs/proposal.md)에서 다시 만드는 결과물. Word에서 저장하면 개인 이름이 들어갈 수 있어 넣지 않는다
+docs/proposal/*.docx
