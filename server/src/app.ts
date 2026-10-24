@@ -43,7 +43,13 @@ export async function buildServer(options: AppOptions = {}): Promise<RoadSensorS
 
   const subscribers = new Map<WebSocket, Set<TileId>>();
 
-  app.get("/health", async () => ({ ok: true, cells: aggregator.publishedCount, subscribers: subscribers.size }));
+  // cells: 배포 중인 격자(k대 이상), activeCells: 관측이 하나라도 있는 격자
+  app.get("/health", async () => ({
+    ok: true,
+    cells: aggregator.publishedCount,
+    activeCells: aggregator.activeCellCount,
+    subscribers: subscribers.size,
+  }));
 
   app.post<{ Body: UploadRequest }>("/v1/observations", { schema: { body: uploadSchema } }, async (req, reply) => {
     const result = aggregator.ingest(req.body, nowMin());

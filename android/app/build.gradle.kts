@@ -12,6 +12,9 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
+
+        // 에뮬레이터에서는 adb reverse tcp:8080 tcp:8080 으로 맥의 서버에 붙는다
+        buildConfigField("String", "SERVER_URL", "\"http://127.0.0.1:8080\"")
     }
 
     compileOptions {

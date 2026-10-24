@@ -9,7 +9,13 @@ import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.IBinder
+import io.roadsensor.BuildConfig
 import io.roadsensor.Log
+import io.roadsensor.net.Uploader
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import io.roadsensor.core.geo.Geohash
 import io.roadsensor.core.model.GeoFix
 import io.roadsensor.core.model.GeoPoint
@@ -33,6 +39,7 @@ class CollectorService : Service() {
 
     val store = Store()
 
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     private lateinit var vehicle: PleosVehicleAdapter
     private lateinit var carApi: CarApiAdapter
     private lateinit var location: LocationSource
@@ -72,6 +79,8 @@ class CollectorService : Service() {
         carApi = CarApiAdapter(this, store::dispatch).also { it.start() }
         locationMode = LocationMode.load(this)
         location = createLocation(locationMode).also { it.start(locationSink) }
+
+        Uploader(store, BuildConfig.SERVER_URL, scope).start()
     }
 
     private fun createLocation(mode: LocationMode): LocationSource = when (mode) {
@@ -93,6 +102,7 @@ class CollectorService : Service() {
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onDestroy() {
+        scope.cancel()
         location.stop()
         carApi.stop()
         vehicle.stop()

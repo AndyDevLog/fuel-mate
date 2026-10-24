@@ -148,6 +148,11 @@ export class Aggregator {
   get publishedCount(): number {
     return this.published.size;
   }
+
+  /** 관측이 하나라도 있는 격자 수(배포 전 포함). 내용은 드러내지 않고 개수만. */
+  get activeCellCount(): number {
+    return this.buckets.size;
+  }
 }
 
 export function tileOf(cell: CellId): TileId {
