@@ -248,6 +248,10 @@ interface MapRenderer {
 ### 6-3. 서버 구현
 
 - 확정(2026-10-24): **Node.js + TypeScript (Fastify + ws)**.
+- 구현(2026-10-24): Node 24의 타입 제거 기능으로 `.ts`를 빌드 없이 바로 실행한다(`npm start`). 타입 검사는 `npm run typecheck`, 테스트는 `npm test`(vitest).
+  - 입력은 JSON 스키마로 검증하고, 모르는 필드는 거부한다(`removeAdditional: false`). 차가 실수로 원본 좌표를 보내면 400으로 드러난다.
+  - 관측 시각이 미래로 1분 넘게 앞서거나 15분 창 밖이면 받지 않는다(`rejected`로 센다).
+  - `CellState`에 `sim`(시뮬레이터 관측 비율)을 추가했다. 관제 웹에서 실차와 가상 차를 구분해 보여주는 용도다.
   - 이유 1: 가장 익숙한 언어다.
   - 이유 2: 관제 웹(React)과 프로토콜 타입을 공유할 수 있다.
   - 이유 3: 시뮬레이터도 같은 저장소에서 TypeScript로 쓴다.

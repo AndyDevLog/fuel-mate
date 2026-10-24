@@ -41,6 +41,9 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 - 앱은 AAOS **사용자 10**에서 실행된다. 런타임 권한은 `adb shell pm grant --user 10 <패키지> <권한>`으로 준다.
 - `adb install -r`, `adb shell screencap`, `adb logcat`으로 직접 확인한다. Virtual Console(`adb forward tcp:8088 tcp:8088` → `http://127.0.0.1:8088/`) 조작은 사용자가 한다.
 - 빌드: `JAVA_HOME`=Android Studio 내장 JBR, `ANDROID_HOME`=Android SDK. AGP 9.4.0, Gradle 9.6.1.
+- 앱: `android/`에서 `./gradlew :core:test`(판정·스토어 단위 테스트), `./gradlew :app:assembleDebug`.
+- 서버: `server/`에서 `npm start`(localhost:8080), `npm test`, `npm run typecheck`. 에뮬레이터는 `adb reverse tcp:8080 tcp:8080`으로 붙는다.
+- 서버 로그에는 메서드·경로·상태만 남긴다. 임시 ID, 격자, IP를 로그에 넣지 않는다.
 
 ## 기타
 
