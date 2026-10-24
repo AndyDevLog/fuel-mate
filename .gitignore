@@ -1,0 +1,25 @@
+# OS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.iml
+
+# Gradle / Android
+.gradle/
+.kotlin/
+build/
+local.properties
+captures/
+*.apk
+!apk/*.apk
+
+# 서명 키와 비밀 값은 절대 커밋하지 않는다
+*.jks
+*.keystore
+keystore.properties
+.env
+.env.*
+
+# Node (서버·관제 웹)
+node_modules/
+dist/

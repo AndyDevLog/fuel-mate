@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- docs/pleos/vehicle-sdk.md 퍼미션 표 -->
+    <uses-permission android:name="pleos.car.permission.CAR_WINDOWS" />
+    <uses-permission android:name="pleos.car.permission.CAR_LIGHTS" />
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+    <!-- 경고등 확인용: 문서상 어노테이션은 CAR_SAFETY, 본문은 PRIVATE_CAR_SAFETY -->
+    <uses-permission android:name="pleos.car.permission.CAR_SAFETY" />
+    <uses-permission android:name="pleos.car.permission.PRIVATE_CAR_SAFETY" />
+
+    <!-- NaviHelper 위치·경로 조회 -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
+    <!-- AAOS 속도(dangerous, 런타임 허용 필요)·기어 -->
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
+
+    <!-- 백그라운드 수집용 포그라운드 서비스(ProbeService) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
+
+    <application
+        android:label="Vehicle Probe"
+        android:allowBackup="false">
+
+        <!-- CCP(다이얼) 미지원 선언 -->
+        <meta-data android:name="com.hmg.rotary.ROTARY_SUPPORTED" android:value="false" />
+
+        <uses-library android:name="android.car" android:required="false" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true">
+            <!-- AAOS 표준 DO 선언. 값은 빌드 옵션 -Pdo 로 바꾼다 -->
+            <meta-data android:name="distractionOptimized" android:value="${distractionOptimized}" />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <service
+            android:name=".ProbeService"
+            android:exported="false"
+            android:foregroundServiceType="dataSync" />
+    </application>
+</manifest>
