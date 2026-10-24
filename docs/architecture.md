@@ -198,6 +198,13 @@ interface MapRenderer {
   - 막히면 `MapRenderer` 아래만 Compose 구현으로 바꾼다. 주행 모드 화면은 처음부터 네이티브라 영향이 없다(결정 2).
 - 그리기 코드(TypeScript + Pixi)는 관제 웹과 같은 패키지(`shared/`)로 공유한다. 차 화면은 그 패키지를 WebView용으로 번들한 결과물을 `assets/`에 넣는다(오프라인 동작, 외부 CDN을 쓰지 않는다).
 - WebView는 정차 중에만 보이고, 주행 중에는 `onPause()`로 멈춘다. 상태가 바뀔 때만 `RenderModel`을 보내고, 그림 쪽도 바뀐 게 없으면 Pixi 렌더 루프를 멈춘다.
+- 구현(2026-10-24, `feat/renderer-web`)
+  - `RenderModel`과 `RenderModels.of(state)`는 `:core`(`present/`)에 둔다. 만드는 함수를 JVM 테스트하려면 반환 타입도 `:core`에 있어야 한다. `MapRenderer`만 `:app`(`render/`)에 있다.
+  - 번들: **esbuild**. 설정 없이 바이너리 하나로 끝나고, 개발 서버가 필요 없다(WebView에 파일로 넣는다). `file://` 페이지는 ES 모듈을 못 읽으므로 IIFE 한 파일로 낸다. `shared/`에서 `npm run build:car` → `android/app/src/main/assets/web/`.
+  - 렌더 루프: Pixi `Application`·ticker를 쓰지 않는다. 모델이 오거나 크기가 바뀌면 `requestAnimationFrame` 한 번, 내 차 이동 애니메이션(0.6초) 동안만 이어서 그린다.
+  - 격자는 기준점 둘레 m 평면에 한 번 그리고, 위치·방향이 바뀌면 컨테이너 변환만 바꾼다(heading-up). 격자는 색·투명도 묶음별로 한 경로에 모아 채운다.
+  - 글자(알림 목록·범례)는 DOM이 그린다. 한글 글꼴과 선명도를 시스템이 처리한다.
+  - WebGL1이 차단된 WebView라서 `WebGLRenderer`를 직접 만들어 WebGL2로 쓴다(`docs/pleos/open-questions.md`).
 
 ---
 

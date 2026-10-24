@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+  <title>Road Sensor 지도</title>
+  <style>
+    :root { color-scheme: dark; --bg: #0b0f14; --panel: rgba(13, 18, 25, 0.92); --line: rgba(255, 255, 255, 0.08); --text: #e8edf2; --sub: #8a96a3; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
+      font-family: system-ui, "Noto Sans CJK KR", sans-serif; -webkit-user-select: none; user-select: none; }
+    #map, #map canvas { position: absolute; inset: 0; display: block; }
+    #panel { position: absolute; left: 0; top: 0; bottom: 0; width: clamp(340px, 30vw, 760px); padding: 3.5vh 32px 3vh;
+      background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2vh; }
+    h1 { margin: 0; font-size: clamp(18px, 2.6vh, 28px); font-weight: 600; color: var(--sub); letter-spacing: 0.02em; }
+    /* 화면이 작으면(분할 화면) 넘치는 알림은 잘린다. 가까운 것부터 보이므로 위가 중요하다 */
+    #alerts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.2vh;
+      flex: 0 1 auto; min-height: 0; overflow: hidden; }
+    #alerts li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 14px; padding: 1.4vh 18px; border-radius: 12px; flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.04); border-left: 8px solid var(--c); }
+    #alerts b { font-size: clamp(20px, 3.4vh, 36px); font-weight: 700; white-space: nowrap; }
+    #alerts span { font-size: clamp(18px, 3vh, 32px); white-space: nowrap; }
+    #empty { margin: 0; font-size: clamp(18px, 3vh, 32px); color: var(--sub); }
+    footer { margin-top: auto; display: flex; flex-direction: column; gap: 1.2vh; font-size: clamp(14px, 2vh, 22px); color: var(--sub); }
+    #mycar { display: flex; flex-wrap: wrap; gap: 10px; }
+    .chip { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); }
+    .chip.on { color: var(--text); background: rgba(77, 225, 255, 0.14); border-color: rgba(77, 225, 255, 0.4); }
+    #legend { display: flex; flex-wrap: wrap; gap: 8px 18px; }
+    .key::before { content: ""; display: inline-block; width: 18px; height: 18px; margin-right: 6px; vertical-align: -3px;
+      background: var(--c); border-radius: 3px; }
+    .key.ring::before { background: transparent; border: 3px solid var(--c); }
+    .key.dot::before { border-radius: 50%; }
+    #status.offline { color: #ff8a8a; }
+    #notice { position: absolute; left: clamp(340px, 30vw, 760px); right: 0; top: 45%; text-align: center; font-size: 32px; color: var(--sub); }
+  </style>
+</head>
+<body>
+  <div id="map"></div>
+  <p id="notice" hidden></p>
+  <aside id="panel">
+    <h1>진행 방향 앞</h1>
+    <ol id="alerts"></ol>
+    <p id="empty" hidden></p>
+    <footer>
+      <div id="mycar"></div>
+      <div id="legend"></div>
+      <div id="status"></div>
+    </footer>
+  </aside>
+  <script src="map.js"></script>
+</body>
+</html>

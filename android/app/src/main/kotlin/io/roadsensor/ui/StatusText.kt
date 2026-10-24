@@ -8,7 +8,7 @@ import io.roadsensor.core.present.DriveLine
 import kotlin.math.roundToInt
 
 /**
- * 렌더러가 붙기 전까지 정차 화면에 보여주는 상태 요약.
+ * 정차 화면의 디버그용 상태 요약("상태" 버튼으로 연다).
  * 원본 좌표 대신 격자 ID를 보여준다(서버에 보내는 것과 같은 단위).
  */
 object StatusText {

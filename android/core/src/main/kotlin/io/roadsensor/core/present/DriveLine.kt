@@ -30,7 +30,7 @@ object DriveLine {
         else -> "${(m + 500) / 1_000}km"
     }
 
-    private fun label(a: RoadAlert) = when (a.kind) {
+    internal fun label(a: RoadAlert) = when (a.kind) {
         AlertKind.RAIN -> "비" + rainSuffix(a.rainLevel)
         AlertKind.DARK -> "어두운 구간"
         AlertKind.HARD_BRAKE -> "급정거 잦음"

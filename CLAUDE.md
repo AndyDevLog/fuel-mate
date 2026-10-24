@@ -45,11 +45,12 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 - 서버: `server/`에서 `npm start`(localhost:8080), `npm test`, `npm run typecheck`. 에뮬레이터는 `adb reverse tcp:8080 tcp:8080`으로 붙는다.
 - 서버 로그에는 메서드·경로·상태만 남긴다. 임시 ID, 격자, IP를 로그에 넣지 않는다.
 - 시뮬레이터: `simulator/`에서 `npm run rain`(비 구간 가상 차, 1분마다 업로드), `npm test`.
+- 지도 그리기: `shared/`에서 `npm run build:car`(→ `android/app/src/main/assets/web/`, 고친 뒤 앱을 다시 빌드), `npm test`, `npm run typecheck`. 디버그 빌드 WebView는 `adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>`로 들여다볼 수 있고, `roadSensor.stress(격자 수, 초)`로 fps를 잰다.
 - 끝까지 확인하는 순서: 서버 `npm start` → `adb reverse tcp:8080 tcp:8080` → 앱 설치·실행 → 시뮬레이터 `npm run rain` → Virtual Console에서 D + ACCEL.
 
 ## 오픈소스
 
-- OkHttp 4.12.0 (Apache License 2.0), Fastify, @fastify/websocket (MIT). README를 쓸 때 출처를 남긴다.
+- OkHttp 4.12.0 (Apache License 2.0), Fastify, @fastify/websocket, PixiJS 8.22.0, esbuild(빌드 도구) (MIT). README를 쓸 때 출처를 남긴다.
 
 ## 기타
 

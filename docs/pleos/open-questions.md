@@ -55,6 +55,7 @@ Pleos Connect Emulator 2.1.0, Android 14 (API 34), `crp_avd_arm64`, M5 Pro 맥.
 - ✅ **WebGL2 동작**: WebView 테스트 셸에서 WebGL1·WebGL2 모두 사용 가능하다. 렌더러는 ANGLE → Android Emulator OpenGL ES Translator(Apple M5 Pro, ES 3.0)다. `MAX_TEXTURE_SIZE` 4096, 전체 화면 clear 루프 60fps.
   - 주의: 에뮬레이터 GPU는 맥 GPU를 번역해서 쓴다. 실차 헤드유닛 성능은 이보다 낮을 수 있으니 이 fps를 성능 근거로 쓰지 않는다.
   - 기술적으로는 A안(WebView + Pixi)이 가능하다. 남은 건 심사 정책상 WebView UI가 허용되는지(문의 메일 항목)다.
+  - ⚠️ **앱 안의 WebView에서는 WebGL1이 차단된다** (2026-10-24, 본 앱 렌더러): `getContext("webgl")`은 null, `getContext("webgl2")`는 `WebGL 2.0 (OpenGL ES 3.0 Chromium)`. logcat에 `WebGL1 blocklisted`. Pixi 8의 자동 선택은 WebGL1으로 지원 여부를 보기 때문에 그대로 두면 Canvas 2D로 떨어진다 → `WebGLRenderer`를 직접 만들어 WebGL2로 쓴다(`shared/src/car/main.ts`). 실차 WebView도 같은지는 모른다.
 - 화면: 디스플레이 2560×1440, 앱 영역 2560×1300(아래 140px는 시스템 바). 기본 홈은 왼쪽 차량 위젯 + 오른쪽 앱 영역의 분할 화면이다.
 - 설치된 Pleos 서비스 중 `ai.pleos.playground.service.vehicle`, `.service.navi`가 있다. `.service.location.fused`(FusedLocation)도 설치되어 있지만, 콘솔에서는 Coming Soon이다. `.service.adas`, `.service.cap`, `ai.pleos.hardware.vehicle.emulator`(Virtual Console 연동으로 추정)도 있다.
 

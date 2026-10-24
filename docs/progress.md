@@ -82,7 +82,16 @@
 - [ ] release 빌드 크기 확인(디버그 APK가 22MB, 내용은 11.8MB). R8 코드 축소 켜기. 서명 키 보관 위치 결정 필요
 - [x] 설명회 미참석 결정, 질문 13개 모두 기본값으로 진행 ([briefing-questions.md](briefing-questions.md))
 - [x] 렌더러 A안(WebView + Pixi) 확정 (architecture.md 결정 6)
-- [ ] 다음: WebView 렌더러(지도·내 차), 기상청 강수 기반 시뮬레이터
+- [x] WebView 렌더러 (`feat/renderer-web`, architecture.md 5장)
+  - `:core` `RenderModels.of(state)` → `RenderModel`(테스트 5개, 합계 52개). 속도처럼 지도에 안 쓰는 값은 빼서 `distinctUntilChanged()`만으로 바뀔 때만 보낸다
+  - `:app` `MapRenderer` + `WebMapRenderer`: `assets/web`을 띄우고 JSON을 `postWebMessage`로 보낸다. D에서는 숨기고 `onPause()`, 그동안 온 모델은 최신 하나만 들고 있다가 P에서 보낸다. 상태 요약 텍스트는 "상태" 버튼으로 접었다
+  - `shared/`: TypeScript + Pixi 8.22.0, esbuild로 IIFE 한 파일(`map.js` 560KB, 외부 CDN 없음). 격자 색(비 파랑·어두움 노란 테두리·급정거 붉은 점), 진행 방향 부채꼴·거리 고리, 목적지 띠, 내 차, 알림 목록(DOM)
+  - 발견: 앱 WebView에서 WebGL1이 차단되고 WebGL2만 된다. Pixi 자동 선택이 Canvas 2D로 떨어져서 `WebGLRenderer`를 직접 만든다(open-questions.md)
+  - 에뮬레이터 확인 (2026-10-24 22:55): P에서 시뮬레이터 비 구간 14격자·내 위치·알림 5개 표시. 바뀐 게 없으면 5초 동안 0프레임
+  - P → D 전환: 지도가 사라지고 한 줄 화면 "약 1km 앞 비 (중)". 그동안 WebView는 `document.hidden`, 5초 동안 프레임 0·모델 0
+  - 격자 수별 측정(방향을 매 프레임 바꾸며 5초, 에뮬레이터 = 맥 GPU라 실차 근거로 쓰지 않음): 1,000개 60fps / 3,000개 60fps / 6,000개 60fps / 10,000개 59.7fps. 도형 다시 만들기 10,000개 10ms, 첫 프레임 최대 20ms
+  - 남은 것: 같은 비 구간의 이웃 격자가 알림 5칸을 모두 차지한다(약 1km, 1.1km, ...) → 이어진 격자를 한 구간으로 묶기. 기본 지도(도로) 없음. 내 차 화면(`MY_CAR`)
+- [ ] 다음: 기상청 강수 기반 시뮬레이터
 
 ## 2단계: 방향 확정 (10/27 ~ 11/2)
 
