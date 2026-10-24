@@ -12,10 +12,13 @@ import android.os.Bundle
 import android.os.IBinder
 import android.view.Gravity
 import android.view.View
+import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import io.roadsensor.Log
+import io.roadsensor.location.LocationMode
 import io.roadsensor.core.model.AppState
 import io.roadsensor.core.present.DriveLine
 import io.roadsensor.service.CollectorService
@@ -36,6 +39,7 @@ class MainActivity : Activity() {
     private var binder: CollectorService.LocalBinder? = null
 
     private lateinit var parkedView: View
+    private lateinit var locationButton: Button
     private lateinit var statusText: TextView
     private lateinit var driveText: TextView
 
@@ -43,6 +47,7 @@ class MainActivity : Activity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val b = service as CollectorService.LocalBinder
             binder = b
+            updateLocationButton()
             collect = scope.launch { b.store.state.collect { render(it) } }
         }
 
@@ -57,9 +62,27 @@ class MainActivity : Activity() {
         statusText = TextView(this).apply {
             textSize = 20f
             typeface = Typeface.MONOSPACE
-            setPadding(48, 48, 48, 48)
+            setPadding(0, 32, 0, 48)
         }
-        parkedView = ScrollView(this).apply { addView(statusText) }
+        // 위치 출처 전환(정차 중에만 보인다). 큰 터치 영역으로 둔다.
+        locationButton = Button(this).apply {
+            textSize = 22f
+            minHeight = 120
+            setOnClickListener {
+                val b = binder ?: return@setOnClickListener
+                val next = if (b.locationMode == LocationMode.DEMO) LocationMode.NAVI else LocationMode.DEMO
+                b.setLocationMode(next)
+                updateLocationButton()
+            }
+        }
+        parkedView = ScrollView(this).apply {
+            addView(LinearLayout(this@MainActivity).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(48, 32, 48, 0)
+                addView(locationButton)
+                addView(statusText)
+            })
+        }
         driveText = TextView(this).apply {
             textSize = 64f
             gravity = Gravity.CENTER
@@ -95,6 +118,12 @@ class MainActivity : Activity() {
             Log.i("속도 권한 결과: ${grantResults.joinToString()}")
             binder?.onPermissionsChanged()
         }
+    }
+
+    private fun updateLocationButton() {
+        val mode = binder?.locationMode ?: return
+        val other = if (mode == LocationMode.DEMO) LocationMode.NAVI else LocationMode.DEMO
+        locationButton.text = "위치 출처: ${mode.label}   (눌러서 ${other.label}로 바꾸기)"
     }
 
     private var askedSpeed = false

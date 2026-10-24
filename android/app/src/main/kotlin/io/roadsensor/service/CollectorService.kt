@@ -10,10 +10,13 @@ import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.IBinder
 import io.roadsensor.Log
+import io.roadsensor.core.geo.Geohash
 import io.roadsensor.core.model.GeoFix
 import io.roadsensor.core.model.GeoPoint
 import io.roadsensor.core.store.Action
 import io.roadsensor.core.store.Store
+import io.roadsensor.location.DemoTrackSource
+import io.roadsensor.location.LocationMode
 import io.roadsensor.location.LocationSink
 import io.roadsensor.location.LocationSource
 import io.roadsensor.location.NaviHelperSource
@@ -33,10 +36,29 @@ class CollectorService : Service() {
     private lateinit var vehicle: PleosVehicleAdapter
     private lateinit var carApi: CarApiAdapter
     private lateinit var location: LocationSource
+    private lateinit var locationMode: LocationMode
 
     inner class LocalBinder : Binder() {
         val store: Store get() = this@CollectorService.store
+        val locationMode: LocationMode get() = this@CollectorService.locationMode
         fun onPermissionsChanged() = carApi.onPermissionsChanged()
+        fun setLocationMode(mode: LocationMode) = this@CollectorService.switchLocation(mode)
+    }
+
+    private val locationSink = object : LocationSink {
+        private var lastCell: String? = null
+
+        override fun onFix(fix: GeoFix) {
+            store.dispatch(Action.LocationFixed(fix))
+            // 원본 좌표는 로그에 남기지 않는다. 격자가 바뀔 때 격자 ID만 남긴다.
+            val cell = Geohash.encode(fix.point)
+            if (cell != lastCell) {
+                lastCell = cell
+                Log.i("격자 이동 → $cell (${fix.origin})")
+            }
+        }
+
+        override fun onDestination(destination: GeoPoint?) = store.dispatch(Action.DestinationChanged(destination))
     }
 
     private val binder = LocalBinder()
@@ -48,12 +70,22 @@ class CollectorService : Service() {
 
         vehicle = PleosVehicleAdapter(this, store::dispatch).also { it.start() }
         carApi = CarApiAdapter(this, store::dispatch).also { it.start() }
-        location = NaviHelperSource(this).also {
-            it.start(object : LocationSink {
-                override fun onFix(fix: GeoFix) = store.dispatch(Action.LocationFixed(fix))
-                override fun onDestination(destination: GeoPoint?) = store.dispatch(Action.DestinationChanged(destination))
-            })
-        }
+        locationMode = LocationMode.load(this)
+        location = createLocation(locationMode).also { it.start(locationSink) }
+    }
+
+    private fun createLocation(mode: LocationMode): LocationSource = when (mode) {
+        LocationMode.NAVI -> NaviHelperSource(this)
+        LocationMode.DEMO -> DemoTrackSource(this, speedMps = { store.state.value.vehicle.speedMps })
+    }
+
+    private fun switchLocation(mode: LocationMode) {
+        if (mode == locationMode) return
+        Log.i("위치 출처 변경: $locationMode → $mode")
+        location.stop()
+        locationMode = mode
+        LocationMode.save(this, mode)
+        location = createLocation(mode).also { it.start(locationSink) }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = START_STICKY
