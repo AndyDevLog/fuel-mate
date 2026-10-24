@@ -54,6 +54,16 @@
   - 앱 카테고리(Mobility Services로 등록 예정) 확인
 - [ ] **저장소 준비**: 공모전 전용 GitHub 계정을 만들고 `git init`, 익명 작성자 설정(`git config --local`), 저장소 안 `CLAUDE.md`(프로젝트 규칙만)를 작성한다.
 
+## 구현
+
+2026-10-24 (`feat/android-skeleton`)
+- [x] `android/` 뼈대: `:core`(순수 Kotlin) + `:app`. AGP 9.4.0, Kotlin 2.2.10, coroutines 1.10.2
+- [x] `:core`: 모델(AppState 등), 판정(비 세기, 급정거), geohash·진행 방향 필터, 상태 스토어(리듀서), 주행 모드 문구. 단위 테스트 25개 통과
+- [x] `:app`: 수집 서비스(포그라운드), Pleos Vehicle 어댑터, Car API 어댑터(주행 규제·속도·기어), NaviHelper 위치, 화면(정차: 상태 요약 / 주행: 한 줄 알림)
+- [x] 에뮬레이터: 설치·실행, 서비스 시작, NaviHelper 연결, D 기어에서 주행 모드 화면 표시
+- [x] 정차 화면, 속도 권한 요청(정차 중 요청 → 허용 → 속도 재구독), Virtual Console 조작(P 기어, 와이퍼 High → "ON / CONTINUOUS_LEVEL_3 → 비 중") 화면 반영 확인
+- [ ] 다음: 데모 궤적 재생(`DemoTrackSource`), 서버 업로드·구독
+
 ## 2단계: 방향 확정 (10/27 ~ 11/2)
 
 - [x] 앱 구조 설계: [architecture.md](architecture.md). 결정 1~5번(모듈, 주행 모드 화면, 격자·익명화, 서버 스택, 저장소 구조) 확정 (2026-10-24)

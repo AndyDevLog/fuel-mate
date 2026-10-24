@@ -97,8 +97,8 @@
 
 ```kotlin
 interface LocationSource {
-    val fixes: Flow<GeoFix>          // lat, lon, heading, speedMps, timeMs
-    fun start(); fun stop()
+    fun start(sink: LocationSink)    // onFix(GeoFix), onDestination(GeoPoint?)
+    fun stop()
 }
 ```
 
