@@ -40,9 +40,14 @@ data class DriveMode(
 ) {
     val limitStringLength: Boolean get() = activeRestrictions and LIMIT_STRING_LENGTH != 0
     val noSetup: Boolean get() = activeRestrictions and NO_SETUP != 0
+    /** 많은 내용을 보여 주지 말라는 규제. 켜지면 주행 지도도 숨기고 한 줄만 둔다. */
+    val limitContent: Boolean get() = activeRestrictions and LIMIT_CONTENT != 0
+    /** 주행 중 단순 지도를 보여도 되는가(주행 중이고 LIMIT_CONTENT가 아닐 때). */
+    val showsDriveMap: Boolean get() = restricted && !limitContent
 
     companion object {
         const val LIMIT_STRING_LENGTH = 4
         const val NO_SETUP = 64
+        const val LIMIT_CONTENT = 32
     }
 }

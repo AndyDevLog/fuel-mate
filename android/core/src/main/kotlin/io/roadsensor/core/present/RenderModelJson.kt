@@ -56,6 +56,8 @@ object RenderModelJson {
             a.cells.forEachIndexed { j, c -> if (j > 0) append(','); str(c) }
             append("],\"lengthText\":")
             if (a.lengthText == null) append("null") else str(a.lengthText)
+            append(",\"reportersText\":")
+            if (a.reportersText == null) append("null") else str(a.reportersText)
             append('}')
         }
         val car = m.myCar

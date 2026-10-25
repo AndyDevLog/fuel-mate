@@ -47,6 +47,8 @@ export class Panel {
   update(m: RenderModel): void {
     this.model = m;
     const onMap = m.screen === "MAP";
+    // 주행 중에는 패널을 통째로 숨긴다(지도와 위쪽 네이티브 배너만)
+    this.root.hidden = m.screen === "DRIVE";
     this.road.hidden = !onMap;
     this.car.hidden = onMap;
     this.myCar.hidden = !onMap;
@@ -62,10 +64,11 @@ export class Panel {
       const label = document.createElement("span");
       label.textContent = a.label;
       li.append(dist, label);
-      if (a.lengthText !== null) {
-        const length = document.createElement("small");
-        length.textContent = a.lengthText;
-        li.append(length);
+      const extra = [a.lengthText, a.reportersText].filter((t): t is string => t !== null);
+      for (const t of extra) {
+        const small = document.createElement("small");
+        small.textContent = t;
+        li.append(small);
       }
       return li;
     }));

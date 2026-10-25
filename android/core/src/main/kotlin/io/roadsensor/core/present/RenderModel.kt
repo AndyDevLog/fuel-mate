@@ -31,7 +31,8 @@ data class RenderModel(
     val online: Boolean,
 )
 
-enum class Screen { MAP, MY_CAR }
+/** DRIVE = 주행 중 단순 지도(패널·버튼 없음, 애니메이션 없음). Activity가 주행 규제에 맞춰 고른다. */
+enum class Screen { MAP, MY_CAR, DRIVE }
 
 /** 진행 방향 판정 범위. 렌더러가 같은 상수를 따로 두지 않게 넘긴다. */
 data class AheadView(val radiusM: Int, val halfAngleDeg: Int, val corridorHalfWidthM: Int)
@@ -70,6 +71,8 @@ data class AlertView(
     val here: Boolean,
     val cells: List<String>,
     val lengthText: String?,
+    /** "앞서 간 차 5대가 와이퍼를 켰습니다". 모르면 null */
+    val reportersText: String?,
 )
 
 /**
@@ -124,6 +127,7 @@ object RenderModels {
         here = a.here,
         cells = a.cells,
         lengthText = DriveLine.zoneAhead(a),
+        reportersText = DriveLine.reportersText(a),
     )
 
     private fun myCarView(s: AppState) = MyCarView(

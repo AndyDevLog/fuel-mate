@@ -100,4 +100,25 @@ class RouteAheadTest {
         val len = ahead.zipWithNext { a, b -> GeoMath.distanceM(a, b) }.sum()
         assertTrue(len in 1_450.0..1_560.0, "남은 길 $len")
     }
+
+    @Test
+    fun `구간마다 신호를 낸 차 수를 세고 주행 보조 문구로 보여 준다`() {
+        var s = AppState()
+        s = reduce(s, Action.LocationFixed(fix()))
+        s = reduce(s, Action.RouteAheadChanged(route))
+        s = reduce(s, Action.CellsUpdated(rainNorth(500, 800), emptyList())) // 격자마다 5대 중 80%가 와이퍼 켬
+        assertEquals(4, s.ahead!!.segments.single().reporters)
+        assertEquals(4, s.alerts.single().reporters)
+        assertEquals("앞서 간 차 4대가 와이퍼를 켰습니다", DriveLine.detail(s))
+        // 글자 수 제한 규제면 보조 문구를 쓰지 않는다
+        val short = reduce(s, Action.DriveModeChanged(true, io.roadsensor.core.model.DriveMode.LIMIT_STRING_LENGTH))
+        assertEquals(null, DriveLine.detail(short))
+    }
+
+    @Test
+    fun `주행 지도는 LIMIT_CONTENT 규제가 없을 때만 보인다`() {
+        assertTrue(io.roadsensor.core.model.DriveMode(true, 16 or 64).showsDriveMap) // 에뮬레이터 D: NO_VIDEO + NO_SETUP
+        assertTrue(!io.roadsensor.core.model.DriveMode(true, 16 or 64 or io.roadsensor.core.model.DriveMode.LIMIT_CONTENT).showsDriveMap)
+        assertTrue(!io.roadsensor.core.model.DriveMode(false, 0).showsDriveMap)
+    }
 }

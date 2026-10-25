@@ -39,6 +39,12 @@ let pending: RenderModel | null = null;
 let raf = 0;
 /** 측정용: true면 애니메이션이 없어도 매 프레임 그린다. */
 let forceFrames = false;
+/** 지금 주행 배치인가(패널 숨김, 위쪽 배너 자리, 가까운 축척) */
+let drivingLayout = false;
+/** 주행 중 지도가 보여 줄 앞길 거리. 정차 중(5km)보다 가깝게 본다 */
+const DRIVE_RANGE_M = 3_000;
+/** 주행 중 위쪽을 덮는 네이티브 배너 높이 비율(배너는 Kotlin이 그린다. 에뮬레이터 앱 영역 기준 약 15%) */
+const DRIVE_BANNER_RATIO = 0.17;
 
 function invalidate(): void {
   if (raf === 0 && renderer !== null) raf = requestAnimationFrame(frame);
@@ -64,7 +70,13 @@ function apply(model: RenderModel): void {
   if (renderer === null) { pending = model; return; }
   const t0 = performance.now();
   const now = performance.now();
-  const showMap = model.screen === "MAP";
+  const showMap = model.screen !== "MY_CAR";
+  const driving = model.screen === "DRIVE";
+  if (driving !== drivingLayout) {
+    drivingLayout = driving;
+    map.animate = !driving;
+    layout();
+  }
   const switched = map.root.visible !== showMap;
   map.root.visible = showMap;
   twin.root.visible = !showMap;
@@ -78,7 +90,9 @@ function apply(model: RenderModel): void {
 function layout(): void {
   if (renderer === null) return;
   renderer.resize(window.innerWidth, window.innerHeight);
-  const l = { width: window.innerWidth, height: window.innerHeight, insetLeft: panel.width };
+  const l = drivingLayout
+    ? { width: window.innerWidth, height: window.innerHeight, insetLeft: 0, insetTop: window.innerHeight * DRIVE_BANNER_RATIO, rangeM: DRIVE_RANGE_M }
+    : { width: window.innerWidth, height: window.innerHeight, insetLeft: panel.width };
   if ([map.layout(l), twin.layout(l)].some(Boolean)) invalidate();
 }
 

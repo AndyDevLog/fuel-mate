@@ -42,7 +42,9 @@ import kotlinx.coroutines.launch
 
 /**
  * 화면은 수집 서비스의 상태를 구독해서 그리기만 한다.
- * 정차: 렌더러(WebView + Pixi). 도로 지도와 내 차 화면을 버튼으로 바꾼다. 주행: 큰 글자 한 줄(네이티브 고정, docs/architecture.md 결정 2).
+ * 정차: 렌더러(WebView + Pixi). 도로 지도와 내 차 화면을 버튼으로 바꾼다.
+ * 주행: 위쪽 네이티브 배너(큰 글자 한 줄 + 보조 한 줄)와 그 아래 애니메이션 없는 단순 지도(Screen.DRIVE).
+ * LIMIT_CONTENT 규제면 지도를 멈추고 배너가 화면 전체를 차지한다(docs/architecture.md 결정 2).
  * 상태 요약 텍스트는 디버그용으로 접어 둔다(오른쪽 위 "상태" 버튼).
  */
 class MainActivity : Activity() {
@@ -58,9 +60,12 @@ class MainActivity : Activity() {
     private lateinit var statusButton: Button
     private lateinit var statusPanel: View
     private lateinit var statusText: TextView
+    private lateinit var driveBanner: LinearLayout
     private lateinit var driveText: TextView
+    private lateinit var driveSub: TextView
 
     private var driving = false
+    private var driveMap = false
     private var resumed = false
     private var lastState: AppState? = null
     /** 지금 보여줄 정차 화면. 화면만의 상태라서 스토어가 아니라 여기 둔다. */
@@ -74,7 +79,8 @@ class MainActivity : Activity() {
             collect = scope.launch {
                 // 렌더러에는 렌더 모델이 바뀔 때만 보낸다(속도처럼 지도에 안 쓰는 값은 걸러진다)
                 launch {
-                    combine(b.store.state, screen, RenderModels::of).distinctUntilChanged().flowOn(Dispatchers.Default)
+                    combine(b.store.state, screen) { s, sc -> RenderModels.of(s, if (s.drive.showsDriveMap) Screen.DRIVE else sc) }
+                        .distinctUntilChanged().flowOn(Dispatchers.Default)
                         .collect { renderer.render(it) }
                 }
                 b.store.state.collect { render(it) }
@@ -133,11 +139,24 @@ class MainActivity : Activity() {
             addView(statusText)
         }
         driveText = TextView(this).apply {
-            textSize = 64f
+            textSize = 56f
             gravity = Gravity.CENTER
             setTextColor(Color.WHITE)
+        }
+        driveSub = TextView(this).apply {
+            textSize = 26f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(0xB8, 0xC4, 0xD0))
+            setPadding(0, 8, 0, 0)
+        }
+        driveBanner = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER
+            setPadding(32, 28, 32, 32)
             setBackgroundColor(Color.BLACK)
             visibility = View.GONE
+            addView(driveText)
+            addView(driveSub)
         }
         setContentView(FrameLayout(this).apply {
             addView(renderer.view, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
@@ -147,7 +166,7 @@ class MainActivity : Activity() {
             addView(statusPanel, FrameLayout.LayoutParams(1000, MATCH_PARENT, Gravity.END).apply {
                 setMargins(0, 150, 24, 24)
             })
-            addView(driveText, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
+            addView(driveBanner, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         })
 
         scope.launch { screen.collect { screenButton.text = if (it == Screen.MAP) "내 차 보기" else "도로 지도 보기" } }
@@ -202,23 +221,39 @@ class MainActivity : Activity() {
         lastState?.let { if (open) statusText.text = StatusText.of(it) }
     }
 
-    /** 렌더러는 화면이 앞에 있고 정차 중일 때만 돈다. 주행 중에는 숨기고 멈춘다(WebView.onPause). */
+    /** 렌더러는 화면이 앞에 있고, 정차 중이거나 주행 지도를 보여도 될 때만 돈다. 아니면 숨기고 멈춘다(WebView.onPause). */
     private fun updateRenderer() {
-        if (resumed && !driving) renderer.resume() else renderer.pause()
+        if (resumed && (!driving || driveMap)) renderer.resume() else renderer.pause()
+    }
+
+    /** 주행 배너: 지도가 있으면 위쪽 띠, 없으면(LIMIT_CONTENT) 화면 전체. */
+    private fun layoutDriveBanner() {
+        val lp = driveBanner.layoutParams as FrameLayout.LayoutParams
+        lp.height = if (driveMap) WRAP_CONTENT else MATCH_PARENT
+        lp.gravity = Gravity.TOP
+        driveBanner.layoutParams = lp
+        driveBanner.setBackgroundColor(if (driveMap) Color.argb(0xE6, 0, 0, 0) else Color.BLACK)
     }
 
     private var askedSpeed = false
 
     private fun render(state: AppState) {
         lastState = state
-        if (state.drive.restricted != driving) {
+        if (state.drive.restricted != driving || state.drive.showsDriveMap != driveMap) {
             driving = state.drive.restricted
-            driveText.visibility = if (driving) View.VISIBLE else View.GONE
+            driveMap = state.drive.showsDriveMap
+            driveBanner.visibility = if (driving) View.VISIBLE else View.GONE
             controls.visibility = if (driving) View.GONE else View.VISIBLE
             if (driving) setStatusOpen(false)
+            layoutDriveBanner()
             updateRenderer()
         }
-        if (driving) driveText.text = DriveLine.of(state)
+        if (driving) {
+            driveText.text = DriveLine.of(state)
+            val detail = DriveLine.detail(state)
+            driveSub.text = detail ?: ""
+            driveSub.visibility = if (detail == null) View.GONE else View.VISIBLE
+        }
         else if (statusPanel.visibility == View.VISIBLE) statusText.text = StatusText.of(state)
 
         // 속도 권한은 정차 중에만 묻는다(주행 중에는 설정 화면이 제한된다)

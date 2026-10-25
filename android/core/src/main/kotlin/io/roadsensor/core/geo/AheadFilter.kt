@@ -56,6 +56,7 @@ object AheadFilter {
                 cells = s.cells,
                 lengthM = s.toM - s.fromM,
                 here = s.fromM == 0,
+                reporters = s.reporters,
             )
         }
         .sortedBy { it.distanceM }
@@ -95,6 +96,13 @@ object AheadFilter {
         return offset <= CORRIDOR_HALF_WIDTH_M && t in 0.0..1.0
     }
 
+    /** 이 격자에서 그 종류의 신호를 낸 차 수(급정거는 횟수). */
+    internal fun reportersOf(kind: AlertKind, c: CellState): Int = when (kind) {
+        AlertKind.RAIN -> Math.round(c.cars * c.rainRatio)
+        AlertKind.DARK -> Math.round(c.cars * c.darkRatio)
+        AlertKind.HARD_BRAKE -> c.hardBrakes
+    }
+
     internal fun kindsOf(c: CellState): List<AlertKind> = buildList {
         if (c.rainRatio >= MIN_RAIN_RATIO && c.rainLevel != RainLevel.NONE) add(AlertKind.RAIN)
         if (c.darkRatio >= MIN_DARK_RATIO) add(AlertKind.DARK)
@@ -109,6 +117,7 @@ object AheadFilter {
         cells = zone.map { it.cell.cell },
         lengthM = (zone.last().distance - zone.first().distance).toInt(),
         here = zone.any { it.cell.cell == myCell },
+        reporters = zone.maxOf { reportersOf(kind, it.cell) },
     )
 
     /** 구간에서 가장 센 비. 세기를 모르는(AUTO) 격자만 있으면 UNKNOWN. */

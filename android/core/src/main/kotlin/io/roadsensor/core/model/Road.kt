@@ -30,6 +30,8 @@ enum class AlertKind { RAIN, DARK, HARD_BRAKE }
  * 같은 종류의 이웃 격자는 한 구간으로 묶는다: [cell]·[distanceM]은 가장 가까운 격자,
  * [cells]는 구간의 모든 격자(가까운 순), [lengthM]은 구간 안 가장 먼 격자까지의 거리 차이.
  * 비는 구간에서 가장 센 강도를 쓴다. [here]: 내 차가 있는 격자가 이 구간에 들어 있다(이미 구간 안).
+ * [reporters]: 신호를 낸 차 수. 비는 와이퍼를 켠 차, 어두움은 라이트를 켠 차(격자별 차 수 × 비율 중 구간 최댓값),
+ * 급정거는 최근 15분 급정거 횟수(구간 최댓값). 0 = 모름.
  */
 data class RoadAlert(
     val kind: AlertKind,
@@ -39,6 +41,7 @@ data class RoadAlert(
     val cells: List<String> = listOf(cell),
     val lengthM: Int = 0,
     val here: Boolean = false,
+    val reporters: Int = 0,
 )
 
 /** 내 차에서 감지한 사건. 업로드와 "내 기여" 표시에 쓴다. */

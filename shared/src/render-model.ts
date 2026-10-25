@@ -40,6 +40,8 @@ export interface AlertView {
   cells: string[];
   /** "400m 구간", 구간 안이면 "약 4.9km 계속". 짧은 구간(200m 미만)은 null */
   lengthText: string | null;
+  /** "앞서 간 차 5대가 와이퍼를 켰습니다". 모르면 null */
+  reportersText: string | null;
 }
 
 export type Gear = "P" | "R" | "N" | "D" | "UNKNOWN";
@@ -78,7 +80,8 @@ export interface RouteView {
 
 export interface RenderModel {
   v: number;
-  screen: "MAP" | "MY_CAR";
+  /** DRIVE = 주행 중 단순 지도(패널 없음, 애니메이션 없음) */
+  screen: "MAP" | "MY_CAR" | "DRIVE";
   center: LatLon | null;
   /** 진행 방향(북 0°, 시계 방향) */
   heading: number;

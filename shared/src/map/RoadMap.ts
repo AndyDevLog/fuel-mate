@@ -17,6 +17,10 @@ export interface MapLayout {
   height: number;
   /** 왼쪽에 알림 패널이 덮는 폭. 내 차는 나머지 영역 가운데에 둔다. */
   insetLeft: number;
+  /** 위쪽을 덮는 높이(주행 중 네이티브 배너). 없으면 0 */
+  insetTop?: number;
+  /** 화면 위쪽까지 들어올 앞길 거리(m). 없으면 진행 방향 판정 반경 */
+  rangeM?: number;
 }
 
 interface Pose { x: number; y: number; heading: number }
@@ -82,6 +86,9 @@ export class RoadMap {
   private anchor = { x: 0, y: 0 };
   private pxPerM = 0.1;
 
+  /** false면 내 차 이동을 애니메이션 없이 바로 옮긴다(주행 중: 자동 애니메이션 최소화) */
+  animate = true;
+
   private pose: Pose | null = null;
   private from: Pose | null = null;
   private to: Pose | null = null;
@@ -100,9 +107,9 @@ export class RoadMap {
     this.layoutValue = layout;
     const mapWidth = layout.width - layout.insetLeft;
     this.anchor = { x: layout.insetLeft + mapWidth / 2, y: layout.height * 0.8 };
-    // 진행 방향 앞 판정 반경이 화면 위쪽까지 들어오게
-    const radius = this.model?.ahead.radiusM ?? 5_000;
-    this.pxPerM = (this.anchor.y - 24) / (radius * 1.05);
+    // 보여 줄 앞길 거리가 화면 위쪽(덮인 곳 아래)까지 들어오게
+    const radius = layout.rangeM ?? this.model?.ahead.radiusM ?? 5_000;
+    this.pxPerM = (this.anchor.y - (layout.insetTop ?? 0) - 24) / (radius * 1.05);
     this.car.position.set(this.anchor.x, this.anchor.y);
     this.north.position.set(layout.width - 72, layout.height - 72);
     this.drawStatic();
@@ -176,7 +183,7 @@ export class RoadMap {
   private moveTo(center: LatLon, heading: number, now: number): void {
     const p = this.projection!;
     const target: Pose = { x: p.x(center.lon), y: p.y(center.lat), heading };
-    if (this.pose === null) {
+    if (this.pose === null || !this.animate) {
       this.pose = target;
       this.from = this.to = null;
       this.applyPose();

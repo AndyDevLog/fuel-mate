@@ -91,7 +91,7 @@ class RenderModelTest {
             route = RouteView(listOf(GeoPoint(37.5, 127.0), GeoPoint(37.51, 127.0)), 1112, false,
                 listOf(SegmentView(300, 600, AlertKind.RAIN, RainLevel.HEAVY))),
             cells = listOf(CellView("wydm9qk", 0.5f, RainLevel.HEAVY, 0f, 0.4f)),
-            alerts = listOf(AlertView(AlertKind.RAIN, "wydm9qk", 1200, "1.2km", "비 \"강\"", "약 1.2km 앞", false, listOf("wydm9qk", "wydm9qs"), "400m 구간")),
+            alerts = listOf(AlertView(AlertKind.RAIN, "wydm9qk", 1200, "1.2km", "비 \"강\"", "약 1.2km 앞", false, listOf("wydm9qk", "wydm9qs"), "400m 구간", "앞서 간 차 4대가 와이퍼를 켰습니다")),
             myCar = MyCarView(true, "연속 1", RainLevel.LIGHT, null, true, false, Gear.P, listOf("ABS ON"), 2),
             online = true,
         )
@@ -102,7 +102,7 @@ class RenderModelTest {
                 """"segments":[{"fromM":300,"toM":600,"kind":"RAIN","rainLevel":3}]},""" +
                 """"cells":[{"cell":"wydm9qk","rain":0.5,"rainLevel":3,"dark":0.0,"brake":0.4}],""" +
                 """"alerts":[{"kind":"RAIN","cell":"wydm9qk","distanceM":1200,"distanceText":"1.2km","label":"비 \"강\"","headline":"약 1.2km 앞","here":false,""" +
-                """"cells":["wydm9qk","wydm9qs"],"lengthText":"400m 구간"}],""" +
+                """"cells":["wydm9qk","wydm9qs"],"lengthText":"400m 구간","reportersText":"앞서 간 차 4대가 와이퍼를 켰습니다"}],""" +
                 """"myCar":{"wiperOn":true,"wiperText":"연속 1","rainLevel":1,"lowBeamOn":null,"tailLampOn":true,""" +
                 """"brakePressed":false,"gear":"P","telltales":["ABS ON"],"hardBrakes":2},"online":true}""",
             RenderModelJson.encode(m),

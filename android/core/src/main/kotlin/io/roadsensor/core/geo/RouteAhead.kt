@@ -62,9 +62,10 @@ object RouteAhead {
         var from = -1.0; var to = -1.0
         val hitCells = linkedSetOf<String>()
         val levels = mutableListOf<RainLevel>()
+        var reporters = 0
         fun flush() {
-            if (from >= 0) out += AheadSegment(from.toInt(), to.toInt(), kind, AheadFilter.strongest(levels), hitCells.toList())
-            from = -1.0; hitCells.clear(); levels.clear()
+            if (from >= 0) out += AheadSegment(from.toInt(), to.toInt(), kind, AheadFilter.strongest(levels), hitCells.toList(), reporters)
+            from = -1.0; hitCells.clear(); levels.clear(); reporters = 0
         }
         for ((d, cell) in samples) {
             val state = cells[cell] ?: continue
@@ -74,6 +75,7 @@ object RouteAhead {
             to = d + STEP_M
             hitCells += cell
             if (kind == AlertKind.RAIN) levels += state.rainLevel
+            reporters = maxOf(reporters, AheadFilter.reportersOf(kind, state))
         }
         flush()
         return out
@@ -87,6 +89,8 @@ data class AheadSegment(
     val kind: AlertKind,
     val rainLevel: RainLevel,
     val cells: List<String>,
+    /** 신호를 낸 차 수(급정거는 횟수). RoadAlert.reporters와 같은 뜻 */
+    val reporters: Int = 0,
 )
 
 data class AheadProfile(

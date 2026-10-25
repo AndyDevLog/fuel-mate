@@ -25,6 +25,24 @@ object DriveLine {
 
     private fun short(a: RoadAlert) = if (a.here) "지금 ${shortLabel(a)}" else "${distance(a.distanceM)} ${shortLabel(a)}"
 
+    /**
+     * 한 줄 아래의 보조 문구: 앞서 간 차가 몇 대나 신호를 냈는지. 크라우드소싱이라는 걸 바로 보여 주고 믿을 근거가 된다.
+     * LIMIT_STRING_LENGTH면 없다. 알 수 없으면(0) 없다.
+     */
+    fun detail(state: AppState): String? {
+        if (state.drive.limitStringLength) return null
+        return state.alerts.firstOrNull()?.let(::reportersText)
+    }
+
+    internal fun reportersText(a: RoadAlert): String? {
+        if (a.reporters <= 0) return null
+        return when (a.kind) {
+            AlertKind.RAIN -> "앞서 간 차 ${a.reporters}대가 와이퍼를 켰습니다"
+            AlertKind.DARK -> "앞서 간 차 ${a.reporters}대가 라이트를 켰습니다"
+            AlertKind.HARD_BRAKE -> "최근 15분 급정거 ${a.reporters}회"
+        }
+    }
+
     /** "약 1km 앞" 또는 이미 구간 안이면 "지금 여기". */
     internal fun headline(a: RoadAlert) = if (a.here) "지금 여기" else "약 ${distance(a.distanceM)} 앞"
 
