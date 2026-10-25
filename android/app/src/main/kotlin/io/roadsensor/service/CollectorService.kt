@@ -58,8 +58,8 @@ class CollectorService : Service() {
     private val locationSink = object : LocationSink {
         private var lastCell: String? = null
 
-        override fun onFix(fix: GeoFix) {
-            store.dispatch(Action.LocationFixed(fix))
+        override fun onFix(fix: GeoFix, routeAhead: List<GeoPoint>?) {
+            store.dispatch(Action.LocationFixed(fix, routeAhead))
             // 원본 좌표는 로그에 남기지 않는다. 격자가 바뀔 때 격자 ID만 남긴다.
             val cell = Geohash.encode(fix.point)
             if (cell != lastCell) {
@@ -69,8 +69,6 @@ class CollectorService : Service() {
         }
 
         override fun onDestination(destination: GeoPoint?) = store.dispatch(Action.DestinationChanged(destination))
-
-        override fun onRouteAhead(route: List<GeoPoint>?) = store.dispatch(Action.RouteAheadChanged(route))
     }
 
     private val binder = LocalBinder()

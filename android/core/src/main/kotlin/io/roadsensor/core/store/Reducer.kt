@@ -47,9 +47,8 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
 
     is Action.DriveModeChanged -> state.copy(drive = DriveMode(action.restricted, action.activeRestrictions))
 
-    is Action.LocationFixed -> state.copy(location = action.fix).withAlerts()
+    is Action.LocationFixed -> state.copy(location = action.fix, routeAhead = action.routeAhead).withAlerts()
     is Action.DestinationChanged -> state.copy(destination = action.destination).withAlerts()
-    is Action.RouteAheadChanged -> state.copy(routeAhead = action.route).withAlerts()
 
     is Action.CellsUpdated -> {
         val cells = state.cells - action.expired.toSet() + action.updated.associateBy { it.cell }

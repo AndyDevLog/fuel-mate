@@ -27,6 +27,7 @@ class DemoTrackSource(
     private var sink: LocationSink? = null
     private var lastTickMs = 0L
     private var lastAheadAt = -1.0
+    private var ahead: List<GeoPoint>? = null
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -34,12 +35,12 @@ class DemoTrackSource(
             val now = SystemClock.elapsedRealtime()
             val pos = p.advance(now - lastTickMs, speedMps() ?: FALLBACK_SPEED_MPS)
             lastTickMs = now
-            sink?.onFix(GeoFix(pos.point, pos.headingDeg, System.currentTimeMillis(), LocationOrigin.DEMO_TRACK))
-            // 앞길은 움직였을 때만 다시 보낸다(정차 중에는 같은 길이라 지도도 다시 그리지 않는다)
+            // 앞길은 움직였을 때만 다시 계산한다(정차 중에는 같은 리스트라 렌더 모델도 같아서 다시 그리지 않는다)
             if (p.travelledM != lastAheadAt) {
                 lastAheadAt = p.travelledM
-                sink?.onRouteAhead(p.pathAhead(RouteAhead.LENGTH_M))
+                ahead = p.pathAhead(RouteAhead.LENGTH_M)
             }
+            sink?.onFix(GeoFix(pos.point, pos.headingDeg, System.currentTimeMillis(), LocationOrigin.DEMO_TRACK), ahead)
             main.postDelayed(this, TICK_MS)
         }
     }
@@ -60,8 +61,8 @@ class DemoTrackSource(
     override fun stop() {
         main.removeCallbacksAndMessages(null)
         sink?.onDestination(null)
-        sink?.onRouteAhead(null)
         lastAheadAt = -1.0
+        ahead = null
         sink = null
         player = null
     }

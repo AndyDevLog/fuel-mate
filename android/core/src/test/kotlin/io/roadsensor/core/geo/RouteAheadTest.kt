@@ -49,8 +49,7 @@ class RouteAheadTest {
     @Test
     fun `앞길이 있으면 알림도 길 위 구간과 같은 거리다`() {
         var s = AppState()
-        s = reduce(s, Action.LocationFixed(fix()))
-        s = reduce(s, Action.RouteAheadChanged(route))
+        s = reduce(s, Action.LocationFixed(fix(), route))
         s = reduce(s, Action.CellsUpdated(rainNorth(500, 800), emptyList()))
         val alert = s.alerts.single()
         assertEquals(s.ahead!!.segments.single().fromM, alert.distanceM)
@@ -61,8 +60,7 @@ class RouteAheadTest {
     fun `내 차 격자부터 시작하는 구간은 이미 구간 안이다`() {
         val cells = (0..600 step 30).map { rain(GeoPoint(start.lat, start.lon + it / 88_430.0), RainLevel.HEAVY) }
         var s = AppState()
-        s = reduce(s, Action.LocationFixed(fix()))
-        s = reduce(s, Action.RouteAheadChanged(route))
+        s = reduce(s, Action.LocationFixed(fix(), route))
         s = reduce(s, Action.CellsUpdated(cells, emptyList()))
         val alert = s.alerts.single()
         assertTrue(alert.here)
@@ -104,8 +102,7 @@ class RouteAheadTest {
     @Test
     fun `구간마다 신호를 낸 차 수를 세고 주행 보조 문구로 보여 준다`() {
         var s = AppState()
-        s = reduce(s, Action.LocationFixed(fix()))
-        s = reduce(s, Action.RouteAheadChanged(route))
+        s = reduce(s, Action.LocationFixed(fix(), route))
         s = reduce(s, Action.CellsUpdated(rainNorth(500, 800), emptyList())) // 격자마다 5대 중 80%가 와이퍼 켬
         assertEquals(4, s.ahead!!.segments.single().reporters)
         assertEquals(4, s.alerts.single().reporters)

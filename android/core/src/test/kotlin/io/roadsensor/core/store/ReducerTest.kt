@@ -106,6 +106,22 @@ class ReducerTest {
     }
 
     @Test
+    fun `위치와 앞길은 한 액션으로 같이 바뀌고 앞길 없는 위치가 오면 앞길을 지운다`() {
+        val here = GeoPoint(37.4127212, 127.094681)
+        val next = GeoPoint(37.4120000, 127.095500)
+        val route = listOf(here, next)
+        val s = AppState().apply(Action.LocationFixed(GeoFix(here, 140f, 0, LocationOrigin.DEMO_TRACK), route))
+        assertEquals(here, s.location?.point)
+        assertEquals(route, s.routeAhead)
+        assertTrue(s.ahead?.estimated == false)
+
+        // 데모 → 내비 전환: 내비 위치에는 앞길이 없어서 진행 방향 직선(추정)으로 돌아간다
+        val navi = s.apply(Action.LocationFixed(GeoFix(next, 140f, 1, LocationOrigin.NAVI_HELPER)))
+        assertNull(navi.routeAhead)
+        assertTrue(navi.ahead?.estimated == true)
+    }
+
+    @Test
     fun `경고등 API를 못 쓰면 null로 남는다`() {
         assertNull(AppState().apply(Action.TelltalesChanged(null)).vehicle.telltales)
     }

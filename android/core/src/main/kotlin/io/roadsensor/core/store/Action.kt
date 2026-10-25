@@ -23,10 +23,12 @@ sealed interface Action {
     data class DriveModeChanged(val restricted: Boolean, val activeRestrictions: Int) : Action
 
     // 위치
-    data class LocationFixed(val fix: GeoFix) : Action
+    /**
+     * 위치와 그 순간의 앞길(첫 점 = 지금 위치, null = 모름)을 한 번에 바꾼다.
+     * 따로 보내면 1초에 상태가 두 번 바뀌고, 사이에 "새 위치 + 예전 앞길" 상태가 생긴다.
+     */
+    data class LocationFixed(val fix: GeoFix, val routeAhead: List<GeoPoint>? = null) : Action
     data class DestinationChanged(val destination: GeoPoint?) : Action
-    /** 앞길 점 목록(첫 점 = 지금 위치). null = 앞길을 모름. */
-    data class RouteAheadChanged(val route: List<GeoPoint>?) : Action
 
     // 서버
     data class CellsUpdated(val updated: List<CellState>, val expired: List<String>) : Action

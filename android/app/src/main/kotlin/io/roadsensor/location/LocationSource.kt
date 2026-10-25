@@ -13,8 +13,10 @@ interface LocationSource {
 }
 
 interface LocationSink {
-    fun onFix(fix: GeoFix)
+    /**
+     * 위치와 그 순간 앞으로 갈 길(첫 점 = 지금 위치)을 함께 받는다. 앞길을 모르면 null.
+     * 앞길은 화면용이고 저장·전송하지 않는다.
+     */
+    fun onFix(fix: GeoFix, routeAhead: List<GeoPoint>?)
     fun onDestination(destination: GeoPoint?)
-    /** 앞으로 갈 길(첫 점 = 지금 위치). 모르면 null. 화면용이고 저장·전송하지 않는다. */
-    fun onRouteAhead(route: List<GeoPoint>?)
 }

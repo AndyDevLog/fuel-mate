@@ -60,6 +60,9 @@
   - `:core`: 구간별 신호를 낸 차 수(격자 차 수 × 비율의 최댓값, 급정거는 횟수), `DriveLine.detail`, `DriveMode.showsDriveMap`. 테스트 2개(합계 64개)
   - 패널 알림 카드에도 "앞서 간 차 n대" 표시
   - `CLAUDE.md` 차량 정책 문장, 설계 결정 2, `docs/pleos/driving-restriction.md` 갱신
+- [x] 위치·앞길 한 번에 보내기(2026-10-25, `refactor/location-with-route`): 데모 궤적이 위치와 앞길을 따로 dispatch해서 1초에 상태가 두 번 바뀌고, 그 사이 "새 위치 + 예전 앞길" 상태가 생겼다
+  - `Action.LocationFixed(fix, routeAhead)` 하나로 합치고 `RouteAheadChanged`·`LocationSink.onRouteAhead`를 지움. 앞길 없는 위치(내비)가 오면 앞길을 지운다. 테스트 1개(합계 65개)
+  - 에뮬레이터 확인(디버그 빌드, WebView `roadSensor.stats`): 주행 중 렌더 모델 1.6개/초 → 약 1개/초, 정차 중 10초 동안 모델·프레임 0
 - [ ] **서버 공개 배포 방법 결정** (2026-10-25 보류): 심사 환경에서 APK가 붙을 서버
   - Fly.io: 지금 구조 그대로, 무료 아님(가장 작은 기기 상시 약 $2/월, 체험은 2시간 또는 7일), CLI로 배포 가능
   - Supabase: 무료(1주 비활성 시 일시정지), 서버 로직을 SQL·Edge Function·Realtime으로 다시 짜야 함(1~2일), 가상 차는 pg_cron으로, React 관제 대시보드와 연결하기 좋음
