@@ -2,13 +2,14 @@
   "name": "road-sensor-simulator",
   "version": "0.1.0",
   "private": true,
-  "description": "데모용 가상 차량: 궤적 일부 구간의 비, 또는 기상청 강수 분포대로 와이퍼 켬/끔을 서버에 업로드한다",
+  "description": "데모용 가상 차량: 궤적 위 비·어두움·급정거 구간, 또는 기상청 강수 분포대로 차량 신호를 서버에 업로드한다",
   "type": "module",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "rain": "node src/rain-zone.ts",
+    "zones": "node src/road-zones.ts",
+    "rain": "node src/road-zones.ts --dark off --brake off",
     "kma": "node --env-file-if-exists=.env src/kma-rain.ts",
     "test": "node --test test/*.test.ts"
   }

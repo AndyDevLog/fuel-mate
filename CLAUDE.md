@@ -44,9 +44,9 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 - 앱: `android/`에서 `./gradlew :core:test`(판정·스토어 단위 테스트), `./gradlew :app:assembleDebug`, `./gradlew :app:assembleRelease`(R8. 서명 키는 저장소 밖 `~/.android-keys/road-sensor/keystore.properties`, 사용자가 만든다. 에뮬레이터 시험만 `-ProadSensor.debugSignRelease=true`).
 - 서버: `server/`에서 `npm start`(localhost:8080), `npm test`, `npm run typecheck`. 에뮬레이터는 `adb reverse tcp:8080 tcp:8080`으로 붙는다.
 - 서버 로그에는 메서드·경로·상태만 남긴다. 임시 ID, 격자, IP를 로그에 넣지 않는다.
-- 시뮬레이터: `simulator/`에서 `npm run rain`(비 구간 가상 차, 1분마다 업로드), `npm run kma -- --snapshot <파일>`(기상청 강수 재생, 가상 차 2,500대), `--backfill 24`(지난 24시간 녹화, 초단기실황은 최근 1일만 준다) 또는 `--live`(인증키 `simulator/.env`의 `KMA_SERVICE_KEY`, 사용자가 발급·입력), `npm test`. 자세한 내용은 `docs/kma-rain.md`.
+- 시뮬레이터: `simulator/`에서 `npm run zones`(데모 궤적 위 어두움·급정거·비 구간 가상 차, 1분마다 업로드. `npm run rain`은 비만), `npm run kma -- --snapshot <파일>`(기상청 강수 재생, 가상 차 2,500대), `--backfill 24`(지난 24시간 녹화, 초단기실황은 최근 1일만 준다) 또는 `--live`(인증키 `simulator/.env`의 `KMA_SERVICE_KEY`, 사용자가 발급·입력), `npm test`. 자세한 내용은 `docs/kma-rain.md`.
 - 지도 그리기: `shared/`에서 `npm run build:car`(→ `android/app/src/main/assets/web/`, 고친 뒤 앱을 다시 빌드), `npm test`, `npm run typecheck`. 디버그 빌드 WebView는 `adb forward tcp:9222 localabstract:webview_devtools_remote_<pid>`로 들여다볼 수 있고, `roadSensor.stress(격자 수, 초)`로 fps를 잰다.
-- 끝까지 확인하는 순서: 서버 `npm start` → `adb reverse tcp:8080 tcp:8080` → 앱 설치·실행 → 시뮬레이터 `npm run rain` → Virtual Console에서 D + ACCEL.
+- 끝까지 확인하는 순서: 서버 `npm start` → `adb reverse tcp:8080 tcp:8080` → 앱 설치·실행 → 시뮬레이터 `npm run zones` → Virtual Console에서 D + ACCEL.
 
 ## 오픈소스
 

@@ -88,6 +88,7 @@ function apply(model: RenderModel): void {
 }
 
 function layout(): void {
+  panel.fitAlerts();
   if (renderer === null) return;
   renderer.resize(window.innerWidth, window.innerHeight);
   const l = drivingLayout

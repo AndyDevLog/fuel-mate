@@ -13,14 +13,18 @@
     #panel { position: absolute; left: 0; top: 0; bottom: 0; width: clamp(340px, 30vw, 760px); padding: 3.5vh 32px 3vh;
       background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2vh; }
     h1 { margin: 0; font-size: clamp(18px, 2.6vh, 28px); font-weight: 600; color: var(--sub); letter-spacing: 0.02em; }
-    /* 화면이 작으면(분할 화면) 넘치는 알림은 잘린다. 가까운 것부터 보이므로 위가 중요하다 */
+    /* 넘치는 알림은 카드째 숨기고 "외 n건"으로 줄인다(Panel.fitAlerts). 가까운 것부터 보이므로 위가 중요하다 */
     #alerts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1.2vh;
       flex: 0 1 auto; min-height: 0; overflow: hidden; }
     #alerts li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 14px; padding: 1.4vh 18px; border-radius: 12px; flex-shrink: 0;
       background: rgba(255, 255, 255, 0.04); border-left: 8px solid var(--c); }
     #alerts b { font-size: clamp(20px, 3.4vh, 36px); font-weight: 700; white-space: nowrap; }
     #alerts span { font-size: clamp(18px, 3vh, 32px); white-space: nowrap; }
-    #alerts small { font-size: clamp(14px, 2.2vh, 24px); color: var(--sub); white-space: nowrap; }
+    #alerts small { font-size: clamp(14px, 2.2vh, 24px); color: var(--sub); }
+    #alerts li.compact { flex-wrap: nowrap; gap: 0 10px; padding: 0.9vh 14px; border-left-width: 6px; overflow: hidden; }
+    #alerts li.compact b, #alerts li.compact span { font-size: clamp(15px, 2.4vh, 26px); }
+    #alerts li.compact span { overflow: hidden; text-overflow: ellipsis; }
+    #alerts li.more { display: block; padding: 0 18px; background: none; border: 0; font-size: clamp(14px, 2.2vh, 24px); color: var(--sub); }
     section { display: flex; flex-direction: column; gap: 2vh; min-height: 0; }
     section[hidden], [hidden] { display: none !important; }
     #car-rows { display: grid; grid-template-columns: auto 1fr; gap: 1.2vh 24px; margin: 0; font-size: clamp(18px, 3vh, 30px); }

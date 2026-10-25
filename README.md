@@ -63,13 +63,13 @@
    adb shell pm grant --user 10 io.roadsensor android.car.permission.CAR_SPEED
    ```
 
-4. 가상 차 실행(지도에 비 구간이 나타납니다)
+4. 가상 차 실행(데모 경로를 출발하면 어두운 구간 → 급정거 잦은 곳 → 비 구간 순서로 나타납니다)
 
    ```bash
-   cd simulator && npm run rain
+   cd simulator && npm run zones
    ```
 
-   기상청 강수 분포를 쓰는 가상 차 수천 대는 `npm run kma -- --snapshot <파일>`입니다([docs/kma-rain.md](docs/kma-rain.md)).
+   비 구간만 보려면 `npm run rain`입니다. 기상청 강수 분포를 쓰는 가상 차 수천 대는 `npm run kma -- --snapshot <파일>`입니다([docs/kma-rain.md](docs/kma-rain.md)).
 
 5. Virtual Console(`adb forward tcp:8088 tcp:8088` → `http://127.0.0.1:8088/`)에서 기어를 D로 바꾸고 ACCEL을 누르면 주행 모드 한 줄 알림으로 바뀌고, 데모 경로를 따라 차가 움직입니다. 와이퍼·하향등·브레이크도 여기서 조작합니다.
 

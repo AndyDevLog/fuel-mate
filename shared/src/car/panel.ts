@@ -56,7 +56,8 @@ export class Panel {
     this.updateCar(m);
     this.updateStrip(m);
 
-    this.alerts.replaceChildren(...m.alerts.map((a) => {
+    // 가장 가까운 알림만 큰 카드로, 나머지는 한 줄로(좁은 패널에 세 종류가 함께 보이게)
+    this.alerts.replaceChildren(...m.alerts.map((a, i) => {
       const li = document.createElement("li");
       li.style.setProperty("--c", cssColor(alertColor(a.kind)));
       const dist = document.createElement("b");
@@ -64,6 +65,10 @@ export class Panel {
       const label = document.createElement("span");
       label.textContent = a.label;
       li.append(dist, label);
+      if (i > 0) {
+        li.className = "compact";
+        return li;
+      }
       const extra = [a.lengthText, a.reportersText].filter((t): t is string => t !== null);
       for (const t of extra) {
         const small = document.createElement("small");
@@ -72,6 +77,7 @@ export class Panel {
       }
       return li;
     }));
+    this.fitAlerts();
     this.empty.hidden = m.alerts.length > 0 || m.center === null;
     this.empty.textContent = m.online ? "앞쪽 도로 이상 없음" : "도로 정보를 받지 못하고 있습니다";
 
@@ -87,6 +93,28 @@ export class Panel {
 
     this.notice.hidden = m.center !== null || !onMap;
     this.notice.textContent = "위치 수신 전";
+  }
+
+  /**
+   * 다 안 들어가는 알림 카드는 반쯤 잘려 보이지 않게 뒤에서부터 숨기고 "외 n건"을 붙인다.
+   * 지도에는 모든 구간이 색칠되어 있다. 모델이 올 때와 화면 크기가 바뀔 때만 잰다.
+   */
+  fitAlerts(): void {
+    this.alerts.querySelector("li.more")?.remove();
+    const cards = [...this.alerts.children] as HTMLElement[];
+    for (const li of cards) li.hidden = false;
+    // 숨겨진 화면(내 차, 주행)에서는 잴 수 없다. 다시 보일 때 새 모델이 와서 다시 잰다
+    if (cards.length === 0 || this.alerts.offsetParent === null) return;
+    const overflows = () => this.alerts.scrollHeight > this.alerts.clientHeight + 1;
+    if (!overflows()) return;
+    const more = document.createElement("li");
+    more.className = "more";
+    this.alerts.append(more);
+    let shown = cards.length;
+    do {
+      cards[--shown].hidden = true;
+      more.textContent = `외 ${cards.length - shown}건은 지도에서 확인`;
+    } while (shown > 1 && overflows());
   }
 
   /** 앞 5km 막대. 구간 위치는 앞길 거리 그대로다(지도 색칠·알림 거리와 같다). 비는 넓게, 어두움·급정거는 오른쪽 띠로 겹친다. */
