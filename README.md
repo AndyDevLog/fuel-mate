@@ -12,8 +12,8 @@
 
 - **차량 신호 수집**: Pleos Vehicle SDK로 와이퍼(켜짐·스위치 단계), 하향등·미등, 브레이크 페달을 구독하고, AAOS Car API로 속도·기어·주행 규제를 읽습니다. 수집은 포그라운드 서비스에서 합니다.
 - **익명 공유**: 정확한 좌표 대신 약 150m 격자(geohash 7자리) ID, 분 단위 시각, 30분마다 바뀌는 임시 ID만 서버로 보냅니다. 서버는 서로 다른 차 3대 이상이 모인 격자만 배포합니다.
-- **도로 지도(정차 중)**: 주변 격자의 비·어두움·급정거, 진행 방향 앞 5km, 목적지 방향 띠. WebView + WebGL2(PixiJS)로 그리고, 바뀐 것이 없으면 렌더링을 멈춥니다.
-- **진행 방향 앞 알림**: 이어진 격자를 한 구간으로 묶어 "약 900m 앞 비 (중) · 1.2km 구간"처럼 알립니다.
+- **도로 지도(정차 중)**: 배경 도로 위에 내가 갈 앞길 5km를 상태별로 색칠합니다(비 파랑, 어두움 노랑, 급정거 빨강). 왼쪽 패널의 "앞 5km 막대"가 같은 구간을 한 줄로 보여 줍니다. WebView + WebGL2(PixiJS)로 그리고, 바뀐 것이 없으면 렌더링을 멈춥니다.
+- **진행 방향 앞 알림**: 앞길 위 구간을 "약 2.1km 앞 비 (중) · 2.9km 구간"처럼 알립니다. 거리는 길을 따라 잰 값입니다(내비 위치처럼 길을 모르면 진행 방향 직선 기준).
 - **주행 모드**: `CarUxRestrictions`가 주행을 알리면 지도를 숨기고 큰 글자 한 줄만 보여 줍니다(네이티브 화면).
 - **내 차 화면**: 차량 모형에 와이퍼·라이트·브레이크·기어·경고등 상태와 내가 보내는 신호.
 
@@ -113,5 +113,5 @@ cd android
 | [Fastify](https://fastify.dev/) 5.12.7, [@fastify/websocket](https://github.com/fastify/fastify-websocket) 11.3.4 | 서버 | MIT |
 | [esbuild](https://esbuild.github.io/) 0.28.2 | 지도 번들 빌드 도구 | MIT |
 | Pleos Vehicle SDK 2.3.2, NaviHelper SDK 3.0.5 | 앱 | Pleos Playground 제공 |
-| [OpenStreetMap](https://www.openstreetmap.org/copyright) | 데모 경로(`assets/tracks/sihung-pangyo-road.json`), 경로 계산은 [OSRM](https://project-osrm.org/) | © OpenStreetMap contributors, ODbL 1.0 |
+| [OpenStreetMap](https://www.openstreetmap.org/copyright) | 데모 경로(`assets/tracks/sihung-pangyo-road.json`, 경로 계산은 [OSRM](https://project-osrm.org/)), 지도 배경 도로(`shared/data/roads-demo.json`, [Overpass API](https://overpass-api.de/)로 추출) | © OpenStreetMap contributors, ODbL 1.0 |
 | 기상청 단기예보 조회서비스(공공데이터포털) | 시뮬레이터 강수 자료 | 공공데이터포털 이용 조건 |

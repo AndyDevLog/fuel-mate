@@ -2,6 +2,7 @@ package io.roadsensor.core.store
 
 import io.roadsensor.core.detect.HardBrakeRule
 import io.roadsensor.core.geo.AheadFilter
+import io.roadsensor.core.geo.RouteAhead
 import io.roadsensor.core.model.AppState
 import io.roadsensor.core.model.DriveMode
 import io.roadsensor.core.model.RoadEvent
@@ -48,6 +49,7 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
 
     is Action.LocationFixed -> state.copy(location = action.fix).withAlerts()
     is Action.DestinationChanged -> state.copy(destination = action.destination).withAlerts()
+    is Action.RouteAheadChanged -> state.copy(routeAhead = action.route).withAlerts()
 
     is Action.CellsUpdated -> {
         val cells = state.cells - action.expired.toSet() + action.updated.associateBy { it.cell }
@@ -65,6 +67,9 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
 private inline fun AppState.withVehicle(change: VehicleSnapshot.() -> VehicleSnapshot) =
     copy(vehicle = vehicle.change())
 
-private fun AppState.withAlerts() = copy(alerts = AheadFilter.alerts(location, destination, cells.values))
+private fun AppState.withAlerts(): AppState {
+    val profile = RouteAhead.profile(location, routeAhead, cells)
+    return copy(ahead = profile, alerts = AheadFilter.alerts(location, destination, cells.values, profile))
+}
 
 private fun AppState.addEvent(event: RoadEvent) = copy(events = (listOf(event) + events).take(AppState.MAX_EVENTS))

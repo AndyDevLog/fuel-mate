@@ -88,6 +88,8 @@ class RenderModelTest {
             heading = 90f,
             destination = null,
             ahead = AheadView(5000, 30, 1000),
+            route = RouteView(listOf(GeoPoint(37.5, 127.0), GeoPoint(37.51, 127.0)), 1112, false,
+                listOf(SegmentView(300, 600, AlertKind.RAIN, RainLevel.HEAVY))),
             cells = listOf(CellView("wydm9qk", 0.5f, RainLevel.HEAVY, 0f, 0.4f)),
             alerts = listOf(AlertView(AlertKind.RAIN, "wydm9qk", 1200, "1.2km", "비 \"강\"", "약 1.2km 앞", false, listOf("wydm9qk", "wydm9qs"), "400m 구간")),
             myCar = MyCarView(true, "연속 1", RainLevel.LIGHT, null, true, false, Gear.P, listOf("ABS ON"), 2),
@@ -96,6 +98,8 @@ class RenderModelTest {
         assertEquals(
             """{"v":1,"screen":"MAP","center":{"lat":37.5,"lon":127.0},"heading":90.0,"destination":null,""" +
                 """"ahead":{"radiusM":5000,"halfAngleDeg":30,"corridorHalfWidthM":1000},""" +
+                """"route":{"path":[[37.5,127.0],[37.51,127.0]],"lengthM":1112,"estimated":false,""" +
+                """"segments":[{"fromM":300,"toM":600,"kind":"RAIN","rainLevel":3}]},""" +
                 """"cells":[{"cell":"wydm9qk","rain":0.5,"rainLevel":3,"dark":0.0,"brake":0.4}],""" +
                 """"alerts":[{"kind":"RAIN","cell":"wydm9qk","distanceM":1200,"distanceText":"1.2km","label":"비 \"강\"","headline":"약 1.2km 앞","here":false,""" +
                 """"cells":["wydm9qk","wydm9qs"],"lengthText":"400m 구간"}],""" +

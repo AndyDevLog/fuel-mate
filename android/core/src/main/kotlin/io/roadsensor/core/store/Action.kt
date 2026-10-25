@@ -25,6 +25,8 @@ sealed interface Action {
     // 위치
     data class LocationFixed(val fix: GeoFix) : Action
     data class DestinationChanged(val destination: GeoPoint?) : Action
+    /** 앞길 점 목록(첫 점 = 지금 위치). null = 앞길을 모름. */
+    data class RouteAheadChanged(val route: List<GeoPoint>?) : Action
 
     // 서버
     data class CellsUpdated(val updated: List<CellState>, val expired: List<String>) : Action

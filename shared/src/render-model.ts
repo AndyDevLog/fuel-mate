@@ -60,6 +60,22 @@ export interface MyCarView {
   hardBrakes: number;
 }
 
+/** 앞길 위 구간. 거리는 길을 따라 잰 값(m) */
+export interface SegmentView {
+  fromM: number;
+  toM: number;
+  kind: AlertKind;
+  rainLevel: RainLevel;
+}
+
+/** 앞길: 첫 점 = 내 위치. estimated = 실제 길을 몰라 진행 방향 직선으로 대신함 */
+export interface RouteView {
+  path: [number, number][];
+  lengthM: number;
+  estimated: boolean;
+  segments: SegmentView[];
+}
+
 export interface RenderModel {
   v: number;
   screen: "MAP" | "MY_CAR";
@@ -68,6 +84,7 @@ export interface RenderModel {
   heading: number;
   destination: LatLon | null;
   ahead: { radiusM: number; halfAngleDeg: number; corridorHalfWidthM: number };
+  route: RouteView | null;
   cells: CellView[];
   alerts: AlertView[];
   myCar: MyCarView;

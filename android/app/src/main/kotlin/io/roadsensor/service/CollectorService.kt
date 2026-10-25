@@ -69,6 +69,8 @@ class CollectorService : Service() {
         }
 
         override fun onDestination(destination: GeoPoint?) = store.dispatch(Action.DestinationChanged(destination))
+
+        override fun onRouteAhead(route: List<GeoPoint>?) = store.dispatch(Action.RouteAheadChanged(route))
     }
 
     private val binder = LocalBinder()

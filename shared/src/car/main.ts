@@ -7,7 +7,7 @@
  * 주행 중에는 Kotlin이 WebView를 숨기고 onPause()하므로 여기까지 오지 않는다.
  */
 import { Container, WebGLRenderer, autoDetectRenderer, type Renderer } from "pixi.js";
-import { RoadMap } from "../map/RoadMap.ts";
+import { RoadMap, type BaseRoads } from "../map/RoadMap.ts";
 import { palette } from "../map/palette.ts";
 import { CarTwin } from "../twin/CarTwin.ts";
 import type { RenderModel } from "../render-model.ts";
@@ -21,6 +21,8 @@ declare global {
       stats: { frames: number; models: number; lastFrameMs: number; lastModelMs: number };
       stress?: (cells: number, seconds?: number) => Promise<unknown>;
     };
+    /** roads.js(배경 도로)가 넣는다. 없으면 배경 도로 없이 그린다. */
+    roadSensorRoads?: BaseRoads;
   }
 }
 
@@ -28,7 +30,8 @@ const debug = new URLSearchParams(location.search).has("debug");
 const stats = { frames: 0, models: 0, lastFrameMs: 0, lastModelMs: 0 };
 
 const panel = new Panel(document.getElementById("panel")!);
-const map = new RoadMap();
+// 차 화면: 격자는 깔지 않고 앞길 색칠만. 측정(?debug&cells)에서는 격자도 그려 부하를 본다
+const map = new RoadMap({ cells: new URLSearchParams(location.search).has("cells") });
 const twin = new CarTwin();
 const stage = new Container();
 let renderer: Renderer | null = null;
@@ -126,6 +129,8 @@ async function start(): Promise<void> {
   document.getElementById("map")!.appendChild(renderer.canvas);
   twin.root.visible = false;
   stage.addChild(map.root, twin.root);
+  map.setBaseRoads(window.roadSensorRoads ?? null);
+  document.getElementById("attribution")!.textContent = window.roadSensorRoads?.attribution ?? "";
   layout();
   if (pending !== null) { const m = pending; pending = null; apply(m); }
   invalidate();

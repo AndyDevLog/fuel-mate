@@ -21,6 +21,8 @@ data class RenderModel(
     val heading: Float,
     val destination: GeoPoint?,
     val ahead: AheadView,
+    /** 앞길(지도 색칠·패널 막대). 위치가 없으면 null. */
+    val route: RouteView?,
     /** 격자 ID 순으로 정렬한다(같은 상태면 같은 값). */
     val cells: List<CellView>,
     val alerts: List<AlertView>,
@@ -33,6 +35,16 @@ enum class Screen { MAP, MY_CAR }
 
 /** 진행 방향 판정 범위. 렌더러가 같은 상수를 따로 두지 않게 넘긴다. */
 data class AheadView(val radiusM: Int, val halfAngleDeg: Int, val corridorHalfWidthM: Int)
+
+/** 앞길과 그 위 구간. 거리는 길을 따라 잰 값(m)이다. estimated = 실제 길을 몰라 진행 방향 직선으로 대신함. */
+data class RouteView(
+    val path: List<GeoPoint>,
+    val lengthM: Int,
+    val estimated: Boolean,
+    val segments: List<SegmentView>,
+)
+
+data class SegmentView(val fromM: Int, val toM: Int, val kind: AlertKind, val rainLevel: RainLevel)
 
 /** 격자 하나. 종류별 강도는 0~1이다. rain은 비가 있을 때(rainLevel != NONE)만 0보다 크다. */
 data class CellView(
@@ -87,6 +99,9 @@ object RenderModels {
         heading = state.location?.headingDeg?.takeIf { it.isFinite() } ?: 0f,
         destination = state.destination,
         ahead = AHEAD,
+        route = state.ahead?.let { p ->
+            RouteView(p.path, p.lengthM, p.estimated, p.segments.map { SegmentView(it.fromM, it.toM, it.kind, it.rainLevel) })
+        },
         cells = state.cells.values.sortedBy { it.cell }.map(::cellView),
         alerts = state.alerts.map(::alertView),
         myCar = myCarView(state),

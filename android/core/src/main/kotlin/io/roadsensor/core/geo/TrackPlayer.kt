@@ -36,6 +36,21 @@ class TrackPlayer(private val points: List<GeoPoint>, private val loop: Boolean 
 
     fun current(): Position = positionAt(travelledM)
 
+    /**
+     * 지금 위치부터 궤적을 따라 [lengthM]까지의 길(점 목록, 첫 점 = 지금 위치).
+     * 궤적 끝(목적지)에서 멈춘다. loop여도 처음으로 넘어가지 않는다(끝에서 처음으로 튀는 선을 그리지 않게).
+     */
+    fun pathAhead(lengthM: Double): List<GeoPoint> {
+        val start = travelledM.coerceIn(0.0, this.lengthM)
+        val end = (start + lengthM).coerceAtMost(this.lengthM)
+        val out = mutableListOf(positionAt(start).point)
+        for (i in points.indices) {
+            if (cumulative[i] > start && cumulative[i] < end) out += points[i]
+        }
+        if (end > start) out += positionAt(end).point
+        return out
+    }
+
     fun positionAt(distanceM: Double): Position {
         val d = distanceM.coerceIn(0.0, lengthM)
         // d가 들어 있는 구간 [i, i+1]

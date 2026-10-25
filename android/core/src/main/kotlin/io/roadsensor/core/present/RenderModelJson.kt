@@ -18,6 +18,21 @@ object RenderModelJson {
         append(",\"ahead\":{\"radiusM\":").append(m.ahead.radiusM)
         append(",\"halfAngleDeg\":").append(m.ahead.halfAngleDeg)
         append(",\"corridorHalfWidthM\":").append(m.ahead.corridorHalfWidthM).append('}')
+        append(",\"route\":")
+        val r = m.route
+        if (r == null) append("null") else {
+            append("{\"path\":[")
+            r.path.forEachIndexed { i, p -> if (i > 0) append(','); append('[').append(p.lat).append(',').append(p.lon).append(']') }
+            append("],\"lengthM\":").append(r.lengthM)
+            append(",\"estimated\":").append(r.estimated)
+            append(",\"segments\":[")
+            r.segments.forEachIndexed { i, s ->
+                if (i > 0) append(',')
+                append("{\"fromM\":").append(s.fromM).append(",\"toM\":").append(s.toM)
+                append(",\"kind\":").str(s.kind.name).append(",\"rainLevel\":").append(s.rainLevel.code).append('}')
+            }
+            append("]}")
+        }
         append(",\"cells\":[")
         m.cells.forEachIndexed { i, c ->
             if (i > 0) append(',')

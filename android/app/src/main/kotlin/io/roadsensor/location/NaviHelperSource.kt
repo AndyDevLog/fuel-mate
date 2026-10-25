@@ -53,6 +53,8 @@ class NaviHelperSource(context: Context) : LocationSource {
 
     override fun start(sink: LocationSink) {
         this.sink = sink
+        // NaviHelper에는 경로 선형 API가 없다(docs/pleos/navihelper-sdk.md) → 앞길은 진행 방향 직선으로 대신한다
+        sink.onRouteAhead(null)
         navi.initialize({
             Log.i("NaviHelper 연결됨")
             navi.addListener(listener)

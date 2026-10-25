@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import io.roadsensor.Log
+import io.roadsensor.core.geo.RouteAhead
 import io.roadsensor.core.geo.TrackPlayer
 import io.roadsensor.core.model.GeoFix
 import io.roadsensor.core.model.GeoPoint
@@ -25,6 +26,7 @@ class DemoTrackSource(
     private var player: TrackPlayer? = null
     private var sink: LocationSink? = null
     private var lastTickMs = 0L
+    private var lastAheadAt = -1.0
 
     private val ticker = object : Runnable {
         override fun run() {
@@ -33,6 +35,11 @@ class DemoTrackSource(
             val pos = p.advance(now - lastTickMs, speedMps() ?: FALLBACK_SPEED_MPS)
             lastTickMs = now
             sink?.onFix(GeoFix(pos.point, pos.headingDeg, System.currentTimeMillis(), LocationOrigin.DEMO_TRACK))
+            // 앞길은 움직였을 때만 다시 보낸다(정차 중에는 같은 길이라 지도도 다시 그리지 않는다)
+            if (p.travelledM != lastAheadAt) {
+                lastAheadAt = p.travelledM
+                sink?.onRouteAhead(p.pathAhead(RouteAhead.LENGTH_M))
+            }
             main.postDelayed(this, TICK_MS)
         }
     }
@@ -53,6 +60,8 @@ class DemoTrackSource(
     override fun stop() {
         main.removeCallbacksAndMessages(null)
         sink?.onDestination(null)
+        sink?.onRouteAhead(null)
+        lastAheadAt = -1.0
         sink = null
         player = null
     }

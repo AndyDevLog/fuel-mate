@@ -22,8 +22,13 @@ object AheadFilter {
     const val MIN_HARD_BRAKES = 2
     const val MAX_ALERTS = 5
 
-    fun alerts(fix: GeoFix?, destination: GeoPoint?, cells: Collection<CellState>): List<RoadAlert> {
+    /**
+     * 실제 앞길([profile]이 추정이 아님)이 있으면 그 길 위 구간으로 알린다. 거리는 길을 따라 잰 값이다.
+     * 없으면 진행 방향 부채꼴과 목적지 띠로 고른다(직선거리).
+     */
+    fun alerts(fix: GeoFix?, destination: GeoPoint?, cells: Collection<CellState>, profile: AheadProfile? = null): List<RoadAlert> {
         if (fix == null) return emptyList()
+        if (profile != null && !profile.estimated) return alongRoute(profile)
         val here = fix.point
         // 내 차가 있는 격자는 방향과 상관없이 넣는다(격자 중심이 살짝 뒤에 있어도 "이미 구간 안"을 알 수 있게)
         val myCell = Geohash.encode(here)
@@ -40,6 +45,21 @@ object AheadFilter {
             .sortedBy { it.distanceM }
             .take(MAX_ALERTS)
     }
+
+    private fun alongRoute(p: AheadProfile): List<RoadAlert> = p.segments
+        .map { s ->
+            RoadAlert(
+                kind = s.kind,
+                cell = s.cells.first(),
+                distanceM = s.fromM,
+                rainLevel = if (s.kind == AlertKind.RAIN) s.rainLevel else RainLevel.NONE,
+                cells = s.cells,
+                lengthM = s.toM - s.fromM,
+                here = s.fromM == 0,
+            )
+        }
+        .sortedBy { it.distanceM }
+        .take(MAX_ALERTS)
 
     private class Hit(val cell: CellState, val center: GeoPoint, val distance: Double)
 
@@ -75,7 +95,7 @@ object AheadFilter {
         return offset <= CORRIDOR_HALF_WIDTH_M && t in 0.0..1.0
     }
 
-    private fun kindsOf(c: CellState): List<AlertKind> = buildList {
+    internal fun kindsOf(c: CellState): List<AlertKind> = buildList {
         if (c.rainRatio >= MIN_RAIN_RATIO && c.rainLevel != RainLevel.NONE) add(AlertKind.RAIN)
         if (c.darkRatio >= MIN_DARK_RATIO) add(AlertKind.DARK)
         if (c.hardBrakes >= MIN_HARD_BRAKES) add(AlertKind.HARD_BRAKE)
@@ -92,7 +112,7 @@ object AheadFilter {
     )
 
     /** 구간에서 가장 센 비. 세기를 모르는(AUTO) 격자만 있으면 UNKNOWN. */
-    private fun strongest(levels: List<RainLevel>): RainLevel =
+    internal fun strongest(levels: List<RainLevel>): RainLevel =
         levels.filter { it != RainLevel.UNKNOWN && it != RainLevel.NONE }.maxByOrNull { it.code }
             ?: if (RainLevel.UNKNOWN in levels) RainLevel.UNKNOWN else RainLevel.NONE
 }
