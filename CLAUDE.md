@@ -41,7 +41,7 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 - 앱은 AAOS **사용자 10**에서 실행된다. 런타임 권한은 `adb shell pm grant --user 10 <패키지> <권한>`으로 준다.
 - `adb install -r`, `adb shell screencap`, `adb logcat`으로 직접 확인한다. Virtual Console(`adb forward tcp:8088 tcp:8088` → `http://127.0.0.1:8088/`) 조작은 사용자가 한다.
 - 빌드: `JAVA_HOME`=Android Studio 내장 JBR, `ANDROID_HOME`=Android SDK. AGP 9.4.0, Gradle 9.6.1.
-- 앱: `android/`에서 `./gradlew :core:test`(판정·스토어 단위 테스트), `./gradlew :app:assembleDebug`.
+- 앱: `android/`에서 `./gradlew :core:test`(판정·스토어 단위 테스트), `./gradlew :app:assembleDebug`, `./gradlew :app:assembleRelease`(R8. 서명 키는 저장소 밖 `~/.android-keys/road-sensor/keystore.properties`, 사용자가 만든다. 에뮬레이터 시험만 `-ProadSensor.debugSignRelease=true`).
 - 서버: `server/`에서 `npm start`(localhost:8080), `npm test`, `npm run typecheck`. 에뮬레이터는 `adb reverse tcp:8080 tcp:8080`으로 붙는다.
 - 서버 로그에는 메서드·경로·상태만 남긴다. 임시 ID, 격자, IP를 로그에 넣지 않는다.
 - 시뮬레이터: `simulator/`에서 `npm run rain`(비 구간 가상 차, 1분마다 업로드), `npm run kma -- --snapshot <파일>`(기상청 강수 재생, 가상 차 2,500대) 또는 `--live`(인증키 `simulator/.env`의 `KMA_SERVICE_KEY`, 사용자가 발급·입력), `npm test`. 자세한 내용은 `docs/kma-rain.md`.
@@ -50,7 +50,7 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 
 ## 오픈소스
 
-- OkHttp 4.12.0 (Apache License 2.0), Fastify, @fastify/websocket, PixiJS 8.22.0, esbuild(빌드 도구) (MIT). 번들 `map.js`에 함께 들어간 Pixi 의존 라이브러리(파일 끝 주석) 포함. 기상청 자료(공공데이터포털). README를 쓸 때 출처를 남긴다.
+- OkHttp 4.12.0 (Apache License 2.0), Fastify, @fastify/websocket, PixiJS 8.22.0, esbuild(빌드 도구) (MIT). 번들 `map.js`에 함께 들어간 Pixi 의존 라이브러리 포함. 기상청 자료(공공데이터포털). 데모 궤적은 OpenStreetMap(ODbL, OSRM으로 계산). 출처 표는 README에 있다. README를 쓸 때 출처를 남긴다.
 
 ## 기타
 

@@ -68,7 +68,7 @@ class DemoTrackSource(
     }
 
     companion object {
-        const val DEFAULT_TRACK = "tracks/sample-sihung-pangyo.json"
+        const val DEFAULT_TRACK = "tracks/sihung-pangyo-road.json"
         private const val TICK_MS = 1_000L
         private const val FALLBACK_SPEED_MPS = 40f / 3.6f
     }

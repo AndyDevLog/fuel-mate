@@ -52,6 +52,7 @@
   - SDK 2.3.2에서 `VehicleException`과 `ErrorCode`가 앱 코드에 노출되지 않는 문제(문서 예제가 컴파일되지 않음)
   - `WiperSwitch` 변경 구독 API 제공 계획
   - 앱 카테고리(Mobility Services로 등록 예정) 확인
+  - APK 파일명 규칙 `팀명_앱이름_release.apk`에서 개인 참가는 팀명이 성명이라 블라인드와 부딪힘 → 개인 참가자는 무엇을 쓰는지
 - [x] **저장소 준비**: 공모전 전용 GitHub 계정을 만들고 `git init`, 익명 작성자 설정(`git config --local`), 저장소 안 `CLAUDE.md`(프로젝트 규칙만)를 작성한다.
 
 ## 구현
@@ -63,7 +64,7 @@
 - [x] 에뮬레이터: 설치·실행, 서비스 시작, NaviHelper 연결, D 기어에서 주행 모드 화면 표시
 - [x] 정차 화면, 속도 권한 요청(정차 중 요청 → 허용 → 속도 재구독), Virtual Console 조작(P 기어, 와이퍼 High → "ON / CONTINUOUS_LEVEL_3 → 비 중") 화면 반영 확인
 - [x] 데모 궤적 재생: `TrackPlayer`(:core, 테스트 7개) + `DemoTrackSource`(차량 속도를 따라 1초마다 위치). 정차 화면 버튼으로 데모/내비 전환, 기본은 데모. 에뮬레이터에서 D + ACCEL로 2.5km 샘플 궤적 26개 격자를 지나 끝에서 처음으로 반복하는 것까지 확인
-- [ ] 샘플 궤적(시흥동 → 판교역 직선)을 실제 도로 궤적으로 교체: 데모 경로(기상청 강수 데이터와 맞출 도로) 정할 때
+- [x] 데모 궤적을 실제 도로로 교체(2026-10-25): 시흥동 → 판교역 약 5.4km(창업로 → 대왕판교로 → 판교로 → 분당내곡로), 점 220개. OSRM으로 계산, OpenStreetMap(ODbL) 출처를 궤적 파일과 README에 남김. 예전 직선 샘플은 지웠다
 - [x] 서버 뼈대 (`server/`, `feat/server-skeleton`): Node 24 + TypeScript(빌드 없이 실행) + Fastify 5 + @fastify/websocket
   - `POST /v1/observations`: JSON 스키마로 검증. 모르는 필드(예: 원본 좌표)는 지우지 않고 400으로 거부한다
   - 격자 집계: 15분 창, 같은 차는 격자마다 최근 값 하나, k=3 미만은 배포하지 않음
@@ -79,7 +80,13 @@
 - [x] 업로드 큐 디스크 저장 (`feat/upload-queue`): `ObservationCodec`(:core, 한 줄 형식, 테스트 3개)으로 `files/upload-queue.txt`에 저장한다. 임시 파일에 쓰고 바꿔치기한다. 저장 파일에도 원본 좌표·임시 ID는 없다
   - 에뮬레이터 확인: 서버를 끈 채 관측값 3개가 쌓임 → 앱 프로세스 강제 종료 → 서버 켜고 재시작 → "업로드 큐 복원 3개" → "업로드 6개 (대기 0)" → 파일 비워짐
 - [x] 설명회 질문지: [briefing-questions.md](briefing-questions.md) (설계가 바뀌는 질문 4개, 평가·제출 4개, 기타 5개)
-- [ ] release 빌드 크기 확인(디버그 APK가 22MB, 내용은 11.8MB). R8 코드 축소 켜기. 서명 키 보관 위치 결정 필요
+- [x] release 빌드(2026-10-25): R8 코드 축소·리소스 축소로 **22MB → 2.7MB**. Pleos SDK는 리플렉션 때문에 통째로 유지(`proguard-rules.pro`). 패키지명 `io.roadsensor` 유지(결정 7)
+  - 서명 키는 저장소 밖 `~/.android-keys/road-sensor/keystore.properties`에서 읽는다(사용자가 직접 생성). 시험용 `-ProadSensor.debugSignRelease=true`로 디버그 키 서명
+  - 에뮬레이터 확인: release APK로 수집 서비스·Vehicle SDK 구독·WebView 지도(WebGL2)·구독 수신 정상, 실제 도로 궤적의 비 구간 16격자 표시
+  - 서명 키 생성(2026-10-25, 사용자): 인증서 이름 `CN=Road Sensor, O=Road Sensor`(실명 없음). 정식 서명 release를 `apksigner`로 확인(APK Signature Scheme v2, 서명자 1, 인증서 지문이 키와 같음) → 에뮬레이터 설치·실행·지도 정상
+  - 키 파일(`~/.android-keys/road-sensor/`)은 저장소 밖에 있다. 잃어버리면 같은 앱으로 업데이트할 수 없으니 따로 백업한다
+  - 남은 것: `apk/` 파일명(문의 중)
+- [x] README(2026-10-25): 앱 소개, 화면, 테스트 환경, 실행 방법, 빌드, 개인정보, 오픈소스·데이터 출처
 - [x] 설명회 미참석 결정, 질문 13개 모두 기본값으로 진행 ([briefing-questions.md](briefing-questions.md))
 - [x] 렌더러 A안(WebView + Pixi) 확정 (architecture.md 결정 6)
 - [x] WebView 렌더러 (`feat/renderer-web`, architecture.md 5장)
@@ -108,7 +115,7 @@
 
 - [x] 앱 구조 설계: [architecture.md](architecture.md). 결정 1~5번(모듈, 주행 모드 화면, 격자·익명화, 서버 스택, 저장소 구조) 확정 (2026-10-24)
 - [x] 렌더러 A안(WebView + Pixi) 확정 (결정 6, 2026-10-24)
-- [ ] 패키지명(결정 7)
+- [x] 패키지명(결정 7): `io.roadsensor` 유지(2026-10-25)
 
 - [x] ~~10/28 설명회 참석~~ → 참석하지 않고 기본값으로 진행. 10/29쯤 공모전 사이트에 녹화본·Q&A 정리가 올라오면 확인한다.
 - [x] 렌더링 A/B안 결정 → A안. 수천 개 점을 그렸을 때의 fps는 렌더러를 만들면서 확인한다.

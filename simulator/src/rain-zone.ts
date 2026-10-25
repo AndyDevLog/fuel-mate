@@ -2,7 +2,7 @@
  * 비 구간 시뮬레이터.
  * 궤적의 일부 구간을 지나는 가상 차 N대가 "와이퍼 켬"을 1분마다 업로드한다(서버 15분 창에서 사라지지 않게).
  *
- *   npm run rain -- [--track ../android/app/src/main/assets/tracks/sample-sihung-pangyo.json]
+ *   npm run rain -- [--track ../android/app/src/main/assets/tracks/sihung-pangyo-road.json]
  *                   [--from 0.4] [--to 0.9] [--cars 5] [--level 2] [--server http://127.0.0.1:8080] [--once]
  *
  * 업로드는 src="sim"으로 표시한다. 서버는 실차와 똑같이 집계하고, 관제 웹에서만 구분해 보여준다.
@@ -13,7 +13,7 @@ import { randomBytes } from "node:crypto";
 import { cellsAlong, type Point } from "./geo.ts";
 import type { UploadRequest } from "../../server/src/protocol.ts";
 
-const DEFAULT_TRACK = new URL("../../android/app/src/main/assets/tracks/sample-sihung-pangyo.json", import.meta.url);
+const DEFAULT_TRACK = new URL("../../android/app/src/main/assets/tracks/sihung-pangyo-road.json", import.meta.url);
 
 const { values: args } = parseArgs({
   options: {
