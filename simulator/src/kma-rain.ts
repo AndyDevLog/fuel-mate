@@ -4,6 +4,8 @@
  *   npm run kma -- --snapshot data/kma-202611031500.json    녹화한 강수 재생(키 필요 없음, 시연용)
  *   npm run kma -- --live                                   지금 강수를 받아 쓰고, 발표 시각마다 data/에 녹화
  *   npm run kma -- --live --record-only                     녹화만(업로드 안 함). 비 오는 날 켜 두면 된다
+ *   npm run kma -- --backfill 24                            지난 24시간(1~24)을 한 번에 녹화하고 끝낸다.
+ *                                                           초단기실황은 최근 1일 자료만 주므로, 비 온 날 하루 안에 한 번 돌리면 된다
  *
  *   [--cars 2500] [--bounds south,west,north,east] [--seed 1] [--server http://127.0.0.1:8080] [--once]
  *
@@ -30,6 +32,7 @@ const { values: args } = parseArgs({
     server: { type: "string", default: "http://127.0.0.1:8080" },
     data: { type: "string", default: new URL("../data/", import.meta.url).pathname },
     once: { type: "boolean", default: false },
+    backfill: { type: "string" },
   },
 });
 
@@ -37,15 +40,15 @@ const bounds: Bounds = args.bounds
   ? (([south, west, north, east]) => ({ south, west, north, east }))(args.bounds.split(",").map(Number))
   : DEMO_BOUNDS;
 
-if (!args.live && !args.snapshot) {
-  console.error("--snapshot <파일> 또는 --live 중 하나가 필요하다");
+if (!args.live && !args.snapshot && !args.backfill) {
+  console.error("--snapshot <파일>, --live, --backfill <시간 수> 중 하나가 필요하다");
   process.exit(1);
 }
 
-async function fetchSnapshot(): Promise<RainSnapshot> {
+async function fetchSnapshot(at = new Date()): Promise<RainSnapshot> {
   const key = process.env.KMA_SERVICE_KEY;
   if (!key) throw new Error("KMA_SERVICE_KEY가 없다(simulator/.env)");
-  const { baseDate, baseTime } = baseTimeOf(new Date());
+  const { baseDate, baseTime } = baseTimeOf(at);
   const points = [];
   for (const { nx, ny } of gridPointsFor(bounds)) points.push({ nx, ny, rn1: await fetchRn1(key, nx, ny, baseDate, baseTime) });
   return { v: 1, source: "kma-ultra-srt-ncst", baseDate, baseTime, bounds, points };
@@ -55,6 +58,18 @@ function describe(s: RainSnapshot): string {
   const wet = s.points.filter((p) => levelOf(p.rn1) > 0);
   const max = Math.max(0, ...s.points.map((p) => p.rn1));
   return `${s.source} ${s.baseDate} ${s.baseTime} · 격자점 ${s.points.length}개 중 비 ${wet.length}개 · 최대 ${max}mm/h`;
+}
+
+if (args.backfill) {
+  // 지금 발표분부터 n시간 전까지. 비가 없던 시각도 저장한다(언제 비가 시작·끝났는지 알 수 있게)
+  const hours = Math.min(24, Math.max(1, Number(args.backfill)));
+  for (let h = 0; h < hours; h++) {
+    const s = await fetchSnapshot(new Date(Date.now() - h * 3_600_000));
+    const path = `${args.data}kma-${s.baseDate}${s.baseTime}.json`;
+    saveSnapshot(path, s);
+    console.log(`녹화: ${path} · ${describe(s)}`);
+  }
+  process.exit(0);
 }
 
 let snapshot: RainSnapshot;

@@ -17,11 +17,14 @@
 - 초단기실황을 고른 이유: 자동승인이라 바로 쓸 수 있고, 격자점 하나에 한 번만 부르면 된다(데모 영역 12km × 12km는 격자점 25개 = 한 시간에 25건).
 - 5km 격자는 150m 격자 지도에서 너무 거칠다 → 격자점 사이를 쌍선형 보간한다.
 - AWS는 필요해지면 같은 스냅숏 형식으로 붙인다(`RainSnapshot`).
-- 확인 필요(키 받은 뒤): 실제 응답 JSON 모양(`response.header` / `response.body.items.item`), RN1 값 표기("1mm 미만" 같은 문자열이 오는지), 과거 발표 시각을 얼마나 거슬러 조회할 수 있는지.
+- ✅ 확인(2026-10-25, 실제 호출): 응답은 `response.header.resultCode`("00" = NORMAL_SERVICE)와 `response.body.items.item[]`(`category`, `obsrValue`)이다. 한 격자점에 PTY(강수형태), REH(습도), RN1(1시간 강수량, 숫자 문자열 예 `"0"`), T1H(기온), UUU·VVV·VEC·WSD(바람)가 온다.
+- ✅ 확인: **최근 1일(24시간) 자료만 준다.** 그보다 이전은 `resultCode` 10 "최근 1일 간의 자료만 제공합니다." → 비 온 날에는 하루 안에 `--backfill 24`로 한 번에 녹화한다.
+- PTY(0 없음, 1 비, 2 비/눈, 3 눈 등)는 아직 쓰지 않는다. 눈을 구분할 때 쓸 수 있다.
 
 ## 인증키
 
-- 공공데이터포털에서 사용자가 직접 발급한다. "일반 인증키(Decoding)" 값을 `simulator/.env`에 `KMA_SERVICE_KEY=...`로 둔다. `.env`는 커밋하지 않는다(`.gitignore`).
+- 공공데이터포털에서 사용자가 직접 발급한다(2026-10-25 발급, 개발계정, 만료 2028-10-25). 마이페이지 활용신청 상세의 "일반 인증키" 값을 `simulator/.env`에 `KMA_SERVICE_KEY=...`로 둔다. 새 화면은 키를 하나만 보여 주고, 16진수라 Encoding·Decoding 구분이 없다. `.env`는 커밋하지 않는다(`.gitignore`).
+- 키는 입력을 숨기는 명령으로 넣는다(`read -rs`). 화면 캡처에 키가 보이지 않게 한다. 노출됐다고 생각되면 포털에서 재발급한다.
 - 코드는 키를 환경 변수로만 읽고, 키가 들어간 URL이나 응답 원문을 로그에 남기지 않는다.
 
 ## 변환
@@ -39,7 +42,8 @@
 ## 녹화와 재생 (시연 날 비가 안 와도 되게)
 
 ```bash
-npm run kma -- --live --record-only    # 비 오는 날 켜 두면 발표 시각마다 data/kma-YYYYMMDDHHMM.json 저장
+npm run kma -- --backfill 24           # 지난 24시간을 한 번에 녹화(비 온 날 하루 안에 한 번). 25개 격자점 × 24 = 600건
+npm run kma -- --live --record-only    # 켜 두면 발표 시각마다 data/kma-YYYYMMDDHHMM.json 저장
 npm run kma -- --snapshot data/kma-202611031500.json    # 녹화 재생(키 필요 없음)
 npm run kma -- --live                  # 지금 강수로 업로드 + 녹화
 ```
