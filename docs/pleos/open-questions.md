@@ -140,6 +140,42 @@ Pleos Connect Emulator 2.1.0, Android 14 (API 34), `crp_avd_arm64`, M5 Pro 맥.
   - 미상 = `AUTO`
   - 에뮬레이터에서는 Low=약, High=중으로 보인다.
 
+## 주행 중 알림 시험 (2026-10-26, 에뮬레이터)
+
+질문: 내비를 앞에 띄우고 달릴 때 우리 앱이 알려 줄 방법이 있는가. Pleos 문서에는 주행 중 서드파티 알림 정책이 없다.
+
+방법: 디버그 빌드 전용 수신기가 adb 브로드캐스트를 받으면 중요도 높음(IMPORTANCE_HIGH) 채널로 알림 하나를 띄운다(지금은 `app/src/debug/.../AheadNotificationProbe`, 실제 앞길 알림과 같은 `AlertNotifier.build`를 쓴다). 사용자 10에 `POST_NOTIFICATIONS`를 `pm grant`로 줌(그전에는 허용 안 됨이라 수집 서비스 상시 알림도 안 보였다).
+
+1차(21:28·21:58, 수신기 `AlertProbeReceiver`, 지금은 지움):
+
+| 상황 | 앞 화면 | 결과 |
+| --- | --- | --- |
+| P | 우리 앱 | 위에 뜨지 않음. 상단 표시줄 종 아이콘에 빨간 점(알림 센터에 쌓임) |
+| P | 내비(`ai.umos.maps.android.navigation.app`, 길 안내 중) | 화면 위쪽 가운데에 카드로 뜸(제목 + 한 줄) |
+| D, 주행 상태 MOVING(2), 시속 14~125km | 우리 앱(주행 배너) | 뜸. 우리 배너 왼쪽 위를 가린다 |
+| D, MOVING | 내비 | 뜸. category 없음·`CATEGORY_NAVIGATION` 차이 없음 |
+
+- 알림을 듣는 쪽: AAOS `CarNotificationListener` 외에 Pleos `ai.umos.homescreen`, `ai.umos.drivingview`, `ai.umos.ambientai`(Gleo, `GleoNotificationListenerService`), `ai.pleos.service.ui`
+- Gleo가 알림을 소리로 읽는 흔적은 로그에 없다(소리는 직접 확인 못 함)
+- D에서는 왼쪽 패널이 `ai.umos.drivingview`의 주행 화면(속도, 내비 회전 안내)으로 바뀐다
+- 한계: 에뮬레이터 결과다. 실차·앱마켓 심사에서 주행 중 서드파티 알림을 허용하는지는 모른다
+- 설계 영향: 우리 앱이 앞에 있을 때는 알림을 보내지 않는다(주행 배너를 가린다). 뒤에 있을 때만 새 구간을 알린다
+
+2차(22:1x, 앞길 알림 기능을 넣은 뒤): 종류(category) 없이 보내면 **화면 위에 뜨지 않았다.** 시스템 로그 `CarHeadsUpNotificationManager: category not set for: io.roadsensor`. 같은 알림을 종류만 바꿔 보냈다(내비가 앞, 보내기 전 카드 없음을 확인):
+
+| category | 화면 위 카드 | 10초 뒤 |
+| --- | --- | --- |
+| 없음, `recommendation`, `event`, `status`, `reminder`, `service` | 안 뜸 | - |
+| `navigation` | 뜸 | 남아 있음(지우지 않으면 40초 넘게, 내비 회전 안내를 가림) |
+| `msg`(메시지) | 뜸(앱 아이콘 포함) | 남아 있음 |
+
+- 1차에서 종류 없이 뜬 것과 결과가 다르다. 원인은 모른다(채널·알림 내용 차이, 첫 알림 여부 등 확인 못 함)
+- 결정: `CATEGORY_NAVIGATION` + `setTimeoutAfter(8초)`. 메시지는 뜻이 맞지 않는다. 8초 뒤 알림이 지워지며 카드도 사라지는 것을 확인했다
+- 확인 필요: 길 안내 앱이 아닌 앱이 `CATEGORY_NAVIGATION`을 써도 되는지(Pleos 정책 문서에 없음)
+- 주행 확인(22:26~22:27, D, 시속 45~65km, 내비가 앞): "약 100m 앞 급정거 잦음", "약 200m 앞 비 (중)" 카드가 차례로 뜸. 어두운 구간은 앱 화면에서 본 뒤라 알리지 않음(설계대로)
+- 관찰(원인 모름): 22:07·22:09·22:22~22:23 주행 중에 홈 화면 쪽(uid 10119)이 런처 인텐트로 우리 앱과 내비를 2~3초 간격으로 번갈아 띄운 기록이 있다. 사용자는 누르지 않았다고 한다. 22:26 이후 주행에서는 없었다
+- 같이 고친 것: 런처·알림으로 다시 열 때마다 `MainActivity`가 새로 쌓이고 이전 화면(WebView 포함)이 남아 있었다(6개) → `launchMode="singleTask"`로 같은 화면을 앞으로 가져온다
+
 ## 아직 문서를 안 읽은 것
 
 - [ ] 속도: 브리프는 Pleos FAQ가 AAOS `CarPropertyManager`의 `PERF_VEHICLE_SPEED`를 권장한다고 적었다. 이번에 다시 확인하지 않았다. 급정거 추정에 필요하다. (https://document.pleos.ai/docs/pleos-only/vehicle-app-developer-guide/vehicle-app-faq)

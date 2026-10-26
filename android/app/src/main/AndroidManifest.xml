@@ -36,9 +36,11 @@
 
         <uses-library android:name="android.car" android:required="false" />
 
+        <!-- 화면은 하나만 둔다: 작업 표시줄·앞길 알림으로 다시 열어도 새로 쌓지 않고 있는 화면을 앞으로 가져온다 -->
         <activity
             android:name=".ui.MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:launchMode="singleTask">
             <!-- 주행 중에도 한 줄 알림을 보여준다. 없으면 주행 중 차단된다(docs/pleos/driving-restriction.md) -->
             <meta-data android:name="distractionOptimized" android:value="true" />
             <intent-filter>

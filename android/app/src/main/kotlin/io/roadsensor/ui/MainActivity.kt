@@ -1,13 +1,16 @@
 package io.roadsensor.ui
 
+import android.Manifest
 import android.app.Activity
 import android.car.Car
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.graphics.Color
 import android.graphics.Typeface
+import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
 import android.view.Gravity
@@ -67,6 +70,7 @@ class MainActivity : Activity() {
     private var driving = false
     private var driveMap = false
     private var resumed = false
+    private var visible = false
     private var lastState: AppState? = null
     /** 지금 보여줄 정차 화면. 화면만의 상태라서 스토어가 아니라 여기 둔다. */
     private val screen = MutableStateFlow(Screen.MAP)
@@ -75,6 +79,7 @@ class MainActivity : Activity() {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val b = service as CollectorService.LocalBinder
             binder = b
+            b.setUiVisible(visible)
             updateLocationButton()
             collect = scope.launch {
                 // 렌더러에는 렌더 모델이 바뀔 때만 보낸다(속도처럼 지도에 안 쓰는 값은 걸러진다)
@@ -172,8 +177,22 @@ class MainActivity : Activity() {
         scope.launch { screen.collect { screenButton.text = if (it == Screen.MAP) "내 차 보기" else "도로 지도 보기" } }
 
         val intent = Intent(this, CollectorService::class.java)
-        startForegroundService(intent)
+        startForegroundService(Intent(intent).putExtra(CollectorService.EXTRA_UI_VISIBLE, true))
         bindService(intent, connection, Context.BIND_AUTO_CREATE)
+    }
+
+    // 화면이 보이는 동안에는 서비스가 앞길 알림을 띄우지 않는다(주행 배너를 가린다).
+    // 분할 화면에서는 보이면서 onResume이 아닐 수 있어서 onStart/onStop으로 본다.
+    override fun onStart() {
+        super.onStart()
+        visible = true
+        binder?.setUiVisible(true)
+    }
+
+    override fun onStop() {
+        visible = false
+        binder?.setUiVisible(false)
+        super.onStop()
     }
 
     override fun onResume() {
@@ -203,8 +222,8 @@ class MainActivity : Activity() {
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
-        if (requestCode == REQUEST_SPEED) {
-            Log.i("속도 권한 결과: ${grantResults.joinToString()}")
+        if (requestCode == REQUEST_PERMISSIONS) {
+            Log.i("권한 결과: ${permissions.zip(grantResults.toList()).joinToString { (p, r) -> "${p.substringAfterLast('.')}=$r" }}")
             binder?.onPermissionsChanged()
         }
     }
@@ -235,7 +254,7 @@ class MainActivity : Activity() {
         driveBanner.setBackgroundColor(if (driveMap) Color.argb(0xE6, 0, 0, 0) else Color.BLACK)
     }
 
-    private var askedSpeed = false
+    private var askedPermissions = false
 
     private fun render(state: AppState) {
         lastState = state
@@ -256,14 +275,21 @@ class MainActivity : Activity() {
         }
         else if (statusPanel.visibility == View.VISIBLE) statusText.text = StatusText.of(state)
 
-        // 속도 권한은 정차 중에만 묻는다(주행 중에는 설정 화면이 제한된다)
-        if (!driving && !askedSpeed && !CarApiAdapter.hasSpeedPermission(this)) {
-            askedSpeed = true
-            requestPermissions(arrayOf(Car.PERMISSION_SPEED), REQUEST_SPEED)
+        // 권한은 정차 중에만 한 번 묻는다(주행 중에는 설정 화면이 제한된다).
+        // 속도: 급정거 판정. 알림: 앞길 알림과 수집 서비스 상시 알림(API 33부터 런타임 권한)
+        if (!driving && !askedPermissions) {
+            askedPermissions = true
+            val missing = buildList {
+                if (!CarApiAdapter.hasSpeedPermission(this@MainActivity)) add(Car.PERMISSION_SPEED)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                    checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+                ) add(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            if (missing.isNotEmpty()) requestPermissions(missing.toTypedArray(), REQUEST_PERMISSIONS)
         }
     }
 
     private companion object {
-        const val REQUEST_SPEED = 1
+        const val REQUEST_PERMISSIONS = 1
     }
 }

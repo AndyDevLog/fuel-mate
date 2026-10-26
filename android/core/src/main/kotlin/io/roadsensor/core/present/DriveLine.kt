@@ -16,8 +16,11 @@ object DriveLine {
 
     fun of(state: AppState): String {
         val alert = state.alerts.firstOrNull() ?: return if (state.drive.limitStringLength) "이상 없음" else "앞쪽 도로 이상 없음"
-        return if (state.drive.limitStringLength) short(alert) else full(alert)
+        return lineOf(alert, state.drive.limitStringLength)
     }
+
+    /** 알림 하나의 한 줄. 주행 배너와 앞길 알림(AlertNotifier)이 같이 쓴다. */
+    fun lineOf(a: RoadAlert, limitStringLength: Boolean): String = if (limitStringLength) short(a) else full(a)
 
     private fun full(a: RoadAlert) =
         if (a.here) "지금 ${label(a)}" + (zoneAhead(a)?.let { " · $it" } ?: "")
@@ -29,10 +32,9 @@ object DriveLine {
      * 한 줄 아래의 보조 문구: 앞서 간 차가 몇 대나 신호를 냈는지. 크라우드소싱이라는 걸 바로 보여 주고 믿을 근거가 된다.
      * LIMIT_STRING_LENGTH면 없다. 알 수 없으면(0) 없다.
      */
-    fun detail(state: AppState): String? {
-        if (state.drive.limitStringLength) return null
-        return state.alerts.firstOrNull()?.let(::reportersText)
-    }
+    fun detail(state: AppState): String? = state.alerts.firstOrNull()?.let { detailOf(it, state.drive.limitStringLength) }
+
+    fun detailOf(a: RoadAlert, limitStringLength: Boolean): String? = if (limitStringLength) null else reportersText(a)
 
     internal fun reportersText(a: RoadAlert): String? {
         if (a.reporters <= 0) return null

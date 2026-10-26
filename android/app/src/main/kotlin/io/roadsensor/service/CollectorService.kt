@@ -17,6 +17,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.MutableStateFlow
 import java.io.File
 import io.roadsensor.core.geo.Geohash
 import io.roadsensor.core.model.GeoFix
@@ -47,12 +48,15 @@ class CollectorService : Service() {
     private lateinit var location: LocationSource
     private lateinit var locationMode: LocationMode
     private lateinit var mapFeed: MapFeed
+    /** 앱 화면이 보이는지. 화면이 알려 준다. 안 보일 때만 앞길 알림을 띄운다. */
+    private val uiVisible = MutableStateFlow(false)
 
     inner class LocalBinder : Binder() {
         val store: Store get() = this@CollectorService.store
         val locationMode: LocationMode get() = this@CollectorService.locationMode
         fun onPermissionsChanged() = carApi.onPermissionsChanged()
         fun setLocationMode(mode: LocationMode) = this@CollectorService.switchLocation(mode)
+        fun setUiVisible(visible: Boolean) { uiVisible.value = visible }
     }
 
     private val locationSink = object : LocationSink {
@@ -85,6 +89,7 @@ class CollectorService : Service() {
 
         Uploader(store, BuildConfig.SERVER_URL, scope, File(filesDir, "upload-queue.txt")).start()
         mapFeed = MapFeed(store, BuildConfig.SERVER_URL, scope).also { it.start() }
+        AlertNotifier(this, store, uiVisible, scope).start()
     }
 
     private fun createLocation(mode: LocationMode): LocationSource = when (mode) {
@@ -101,7 +106,11 @@ class CollectorService : Service() {
         location = createLocation(mode).also { it.start(locationSink) }
     }
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int) = START_STICKY
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // 화면이 서비스를 시작할 때는 바인딩이 이어지기 전에도 "보이는 중"으로 둔다(그 사이 알림이 뜨지 않게)
+        if (intent?.getBooleanExtra(EXTRA_UI_VISIBLE, false) == true) uiVisible.value = true
+        return START_STICKY
+    }
 
     override fun onBind(intent: Intent?): IBinder = binder
 
@@ -131,8 +140,9 @@ class CollectorService : Service() {
             .build()
     }
 
-    private companion object {
-        const val CHANNEL_ID = "collector"
-        const val NOTIFICATION_ID = 1
+    companion object {
+        const val EXTRA_UI_VISIBLE = "io.roadsensor.extra.UI_VISIBLE"
+        private const val CHANNEL_ID = "collector"
+        private const val NOTIFICATION_ID = 1
     }
 }

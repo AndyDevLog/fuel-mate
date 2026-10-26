@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 디버그 빌드에만 합쳐진다. 시험용 수신기(AheadNotificationProbe) -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <receiver
+            android:name=".debug.AheadNotificationProbe"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="io.roadsensor.debug.AHEAD_PROBE" />
+            </intent-filter>
+        </receiver>
+    </application>
+</manifest>
