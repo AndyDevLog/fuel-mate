@@ -54,7 +54,11 @@ class CollectorService : Service() {
     inner class LocalBinder : Binder() {
         val store: Store get() = this@CollectorService.store
         val locationMode: LocationMode get() = this@CollectorService.locationMode
-        fun onPermissionsChanged() = carApi.onPermissionsChanged()
+        fun onPermissionsChanged() {
+            carApi.onPermissionsChanged()
+            // 알림 권한을 받기 전에 띄운 상시 알림은 숨겨진 채 남는다. "도로 정보 공유 중"이 바로 보이게 다시 띄운다
+            getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification())
+        }
         fun setLocationMode(mode: LocationMode) = this@CollectorService.switchLocation(mode)
         fun setUiVisible(visible: Boolean) { uiVisible.value = visible }
     }
