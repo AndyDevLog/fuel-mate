@@ -29,7 +29,8 @@
     #alerts span { font-size: clamp(18px, 3vh, 32px); white-space: nowrap; }
     #alerts small { font-size: clamp(14px, 2.2vh, 24px); color: var(--sub); }
     #alerts li.compact { flex-wrap: nowrap; gap: 0 10px; padding: 0.9vh 14px; border-left-width: 6px; overflow: hidden; }
-    #alerts li.compact b, #alerts li.compact span { font-size: clamp(15px, 2.4vh, 26px); }
+    /* 두 번째부터의 알림도 주요 정보라 5mm(약 32px, 160dpi) 가까이 둔다(Pleos UI 가이드: 주요 5mm, 보조 3mm 이상) */
+    #alerts li.compact b, #alerts li.compact span { font-size: clamp(17px, 2.6vh, 30px); }
     #alerts li.compact span { overflow: hidden; text-overflow: ellipsis; }
     #alerts li.more { display: block; padding: 0 18px; background: none; border: 0; font-size: clamp(14px, 2.2vh, 24px); color: var(--sub); }
     section { display: flex; flex-direction: column; gap: 2vh; min-height: 0; }
@@ -43,9 +44,6 @@
     .note .sub { color: var(--sub); font-size: clamp(13px, 1.9vh, 20px); }
     #empty { margin: 0; font-size: clamp(18px, 3vh, 32px); color: var(--sub); }
     footer { margin-top: auto; display: flex; flex-direction: column; gap: 1.2vh; font-size: clamp(14px, 2vh, 22px); color: var(--sub); }
-    #mycar { display: flex; flex-wrap: wrap; gap: 10px; }
-    .chip { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); }
-    .chip.on { color: var(--text); background: rgba(77, 225, 255, 0.14); border-color: rgba(77, 225, 255, 0.4); }
     #legend { display: flex; flex-wrap: wrap; gap: 8px 18px; }
     .key::before { content: ""; display: inline-block; width: 18px; height: 18px; margin-right: 6px; vertical-align: -3px;
       background: var(--c); border-radius: 3px; }
@@ -58,10 +56,10 @@
     #bar { position: relative; width: 28px; border-radius: 8px; background: rgba(207, 216, 227, 0.14); overflow: hidden; }
     #bar .seg { position: absolute; left: 0; right: 0; background: var(--c); }
     #bar .seg.thin { left: auto; width: 45%; }
-    #ticks { position: relative; flex: 1; font-size: clamp(12px, 1.7vh, 18px); color: var(--sub); }
+    #ticks { position: relative; flex: 1; font-size: clamp(14px, 1.8vh, 20px); color: var(--sub); }
     #ticks span { position: absolute; left: 0; transform: translateY(50%); white-space: nowrap; }
     #ticks span.hit { color: var(--text); }
-    #strip-note { margin: 0; font-size: clamp(12px, 1.7vh, 16px); color: var(--sub); }
+    #strip-note { margin: 0; font-size: clamp(14px, 1.8vh, 20px); color: var(--sub); }
     #attribution { position: absolute; right: 12px; bottom: 6px; margin: 0; font-size: 12px; color: rgba(232, 237, 242, 0.45); }
     #notice { position: absolute; left: clamp(340px, 30vw, 760px); right: 0; top: 45%; text-align: center; font-size: 32px; color: var(--sub); }
   </style>
@@ -91,7 +89,6 @@
       </div>
     </section>
     <footer>
-      <div id="mycar"></div>
       <div id="legend"></div>
       <div id="status"></div>
     </footer>

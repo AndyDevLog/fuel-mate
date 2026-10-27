@@ -1,5 +1,5 @@
 /**
- * 왼쪽 패널(DOM). 도로 지도에서는 진행 방향 앞 알림, 내 차 화면에서는 차량 신호와 내가 보내는 신호를 보여준다. 글자는 DOM이 맡는다: 한글 글꼴·선명도를 시스템이 처리하고, 모델이 올 때만 바뀐다.
+ * 왼쪽 패널(DOM). 도로 지도에서는 진행 방향 앞 알림, 내 차 화면에서는 차량 신호와 내가 보내는 신호를 보여준다. 글자는 DOM이 맡는다: 선명도는 시스템이 처리하고(글꼴은 차량 기본 글꼴, index.html), 모델이 올 때만 바뀐다.
  */
 import { alertColor, cssColor, palette } from "../map/palette.ts";
 import { segmentColor } from "../map/RoadMap.ts";
@@ -11,7 +11,6 @@ export class Panel {
   private readonly alerts: HTMLOListElement;
   private readonly empty: HTMLElement;
   private readonly status: HTMLElement;
-  private readonly myCar: HTMLElement;
   private readonly notice: HTMLElement;
   private readonly road: HTMLElement;
   private readonly car: HTMLElement;
@@ -29,7 +28,6 @@ export class Panel {
     this.alerts = root.querySelector("#alerts")!;
     this.empty = root.querySelector("#empty")!;
     this.status = root.querySelector("#status")!;
-    this.myCar = root.querySelector("#mycar")!;
     this.notice = document.getElementById("notice")!;
     this.road = root.querySelector("#road")!;
     this.car = root.querySelector("#car")!;
@@ -51,7 +49,6 @@ export class Panel {
     this.root.hidden = m.screen === "DRIVE";
     this.road.hidden = !onMap;
     this.car.hidden = onMap;
-    this.myCar.hidden = !onMap;
     this.legend.hidden = !onMap;
     this.updateCar(m);
     this.updateStrip(m);
@@ -80,13 +77,6 @@ export class Panel {
     this.fitAlerts();
     this.empty.hidden = m.alerts.length > 0 || m.center === null;
     this.empty.textContent = m.online ? "앞쪽 도로 이상 없음" : "도로 정보를 받지 못하고 있습니다";
-
-    const car = m.myCar;
-    this.myCar.replaceChildren(
-      chip("와이퍼", car.wiperOn, ["", "약", "중", "강"][car.rainLevel] ?? ""),
-      chip("하향등", car.lowBeamOn),
-      chip("브레이크", car.brakePressed),
-    );
 
     this.status.textContent = m.online ? "실시간 연결됨" : "오프라인: 도로 정보를 받지 못하고 있습니다";
     this.status.classList.toggle("offline", !m.online);
@@ -193,11 +183,4 @@ export class Panel {
       item(cssColor(palette.brake), "급정거", "line"),
     );
   }
-}
-
-function chip(name: string, on: boolean | null, extra = ""): HTMLElement {
-  const s = document.createElement("span");
-  s.className = `chip ${on === true ? "on" : on === false ? "off" : "unknown"}`;
-  s.textContent = `${name} ${on === true ? "켬" : on === false ? "끔" : "-"}${on && extra ? ` (${extra})` : ""}`;
-  return s;
 }

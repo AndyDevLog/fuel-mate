@@ -18,7 +18,6 @@ import android.view.View
 import android.view.Window
 import android.view.ViewGroup.LayoutParams.MATCH_PARENT
 import android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-import android.widget.Button
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -58,9 +57,11 @@ class MainActivity : Activity() {
 
     private lateinit var renderer: MapRenderer
     private lateinit var controls: View
-    private lateinit var screenButton: Button
-    private lateinit var locationButton: Button
-    private lateinit var statusButton: Button
+    private lateinit var tabs: ScreenTabs
+    /** 개발·시연용(위치 출처, 상태). 평소에는 숨기고 탭을 길게 누르면 연다. */
+    private lateinit var devControls: View
+    private lateinit var locationButton: TextView
+    private lateinit var statusButton: TextView
     private lateinit var statusPanel: View
     private lateinit var statusText: TextView
     private lateinit var driveBanner: LinearLayout
@@ -104,33 +105,32 @@ class MainActivity : Activity() {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         renderer = WebMapRenderer(this)
 
-        // 위치 출처 전환(정차 중에만 보인다). 큰 터치 영역으로 둔다.
-        locationButton = Button(this).apply {
-            textSize = 20f
-            minHeight = 100
-            setOnClickListener {
-                val b = binder ?: return@setOnClickListener
-                val next = if (b.locationMode == LocationMode.DEMO) LocationMode.NAVI else LocationMode.DEMO
-                b.setLocationMode(next)
-                updateLocationButton()
-            }
+        // 정차 화면 전환 탭. 길게 누르면 개발·시연용 버튼(위치 출처, 상태)이 열린다. 정차 중에만 보인다.
+        tabs = ScreenTabs(this, onSelect = { screen.value = it }, onLongPress = {
+            val open = devControls.visibility != View.VISIBLE
+            devControls.visibility = if (open) View.VISIBLE else View.GONE
+            if (!open) setStatusOpen(false)
+        })
+        locationButton = devButton(this) {
+            val b = binder ?: return@devButton
+            val next = if (b.locationMode == LocationMode.DEMO) LocationMode.NAVI else LocationMode.DEMO
+            b.setLocationMode(next)
+            updateLocationButton()
         }
-        screenButton = Button(this).apply {
-            textSize = 20f
-            minHeight = 100
-            setOnClickListener { screen.value = if (screen.value == Screen.MAP) Screen.MY_CAR else Screen.MAP }
-        }
-        statusButton = Button(this).apply {
-            textSize = 20f
-            minHeight = 100
-            text = "상태"
-            setOnClickListener { setStatusOpen(statusPanel.visibility != View.VISIBLE) }
+        statusButton = devButton(this) { setStatusOpen(statusPanel.visibility != View.VISIBLE) }.apply { text = "상태" }
+        devControls = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.END
+            visibility = View.GONE
+            addView(locationButton)
+            addView(statusButton, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { marginStart = 12 })
         }
         controls = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            addView(screenButton)
-            addView(locationButton)
-            addView(statusButton)
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.END
+            // 개발용 줄이 열려도 탭은 내용 폭 그대로 오른쪽에 붙어 있게 한다
+            addView(tabs, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { gravity = Gravity.END })
+            addView(devControls, LinearLayout.LayoutParams(WRAP_CONTENT, WRAP_CONTENT).apply { topMargin = 12; gravity = Gravity.END })
         }
         statusText = TextView(this).apply {
             textSize = 16f
@@ -169,12 +169,12 @@ class MainActivity : Activity() {
                 setMargins(0, 24, 24, 0)
             })
             addView(statusPanel, FrameLayout.LayoutParams(1000, MATCH_PARENT, Gravity.END).apply {
-                setMargins(0, 150, 24, 24)
+                setMargins(0, 260, 24, 24)
             })
             addView(driveBanner, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         })
 
-        scope.launch { screen.collect { screenButton.text = if (it == Screen.MAP) "내 차 보기" else "도로 지도 보기" } }
+        scope.launch { screen.collect { tabs.select(it) } }
 
         val intent = Intent(this, CollectorService::class.java)
         startForegroundService(Intent(intent).putExtra(CollectorService.EXTRA_UI_VISIBLE, true))

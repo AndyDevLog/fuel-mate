@@ -325,8 +325,9 @@ export class RoadMap {
     for (let km = 1; km * 1_000 <= radiusM; km++) {
       const rr = km * 1_000 * this.pxPerM;
       rings.circle(x, y, rr);
-      const text = new Text({ text: `${km}km`, style: { fontFamily: FONT_FAMILIES, fontSize: 18, fill: palette.ring } });
-      text.alpha = 0.35;
+      // 보조 글자: 3mm(약 20px, 160dpi) 이상, 바탕 대비 4.5:1 이상(Pleos UI 가이드). 흰색 50%면 약 5:1
+      const text = new Text({ text: `${km}km`, style: { fontFamily: FONT_FAMILIES, fontSize: 20, fill: palette.ring } });
+      text.alpha = 0.5;
       text.position.set(x + 8, y - rr - 24);
       this.ringLabels.addChild(text);
     }

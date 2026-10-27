@@ -18,6 +18,7 @@ Pleos 공식 문서(https://document.pleos.ai)를 읽고 이 프로젝트에 필
 | [vehicle-sdk.md](vehicle-sdk.md) | 의존성, 생명주기, 퍼미션, 오류 코드, Wiper·Light·Brake·Safety(경고등) API와 리스너 |
 | [navihelper-sdk.md](navihelper-sdk.md) | 의존성, 퍼미션, 초기화, 이벤트 리스너, 위치·경로 데이터 모델 |
 | [driving-restriction.md](driving-restriction.md) | CarUxRestrictions 연동, DO 선언, 지역별 규제, 앱 카테고리 |
+| [ui-design-guide.md](ui-design-guide.md) | UI Design Guide 원칙·수치 기준(대비, 글자 높이, 레이아웃, 주간·야간), 이 앱에서 재는 법 |
 | [open-questions.md](open-questions.md) | 확인 필요 항목과 기획에 미치는 영향 |
 
 ## 공통 Maven 저장소

@@ -104,7 +104,7 @@ interface LocationSource {
 
 - `NaviHelperSource`: `getCurrentLocationInfo()`를 2초마다 요청한다(자동 푸시가 확인되지 않았다). 목적지(`DestinationInfo`)도 받는다.
 - `DemoTrackSource`: `assets/tracks/*.json`의 점 목록(`points: [[lat, lon], ...]`, `loop`)을 재생한다. 차량 속도(`PERF_VEHICLE_SPEED`)만큼 1초마다 궤적을 따라 나아간다(`:core`의 `TrackPlayer`). 속도를 못 읽으면 40km/h로 간다. 궤적 끝을 목적지로 둔다.
-- 에뮬레이터는 NaviHelper 위치가 고정이다(GNSS NMEA 체크섬 버그). 그래서 **기본 위치 출처는 데모 경로**다. 정차 화면의 버튼으로 내비 위치로 바꿀 수 있고, 선택은 저장된다(`LocationMode`).
+- 에뮬레이터는 NaviHelper 위치가 고정이다(GNSS NMEA 체크섬 버그). 그래서 **기본 위치 출처는 데모 경로**다. 정차 화면 탭을 길게 누르면 나오는 시연용 버튼으로 내비 위치로 바꿀 수 있고, 선택은 저장된다(`LocationMode`).
 
 ### 3-3. Detector (신호 → 도로 관측값)
 
