@@ -207,7 +207,10 @@ interface MapRenderer {
   - 번들: **esbuild**. 설정 없이 바이너리 하나로 끝나고, 개발 서버가 필요 없다(WebView에 파일로 넣는다). `file://` 페이지는 ES 모듈을 못 읽으므로 IIFE 한 파일로 낸다. `shared/`에서 `npm run build:car` → `android/app/src/main/assets/web/`.
   - 렌더 루프: Pixi `Application`·ticker를 쓰지 않는다. 모델이 오거나 크기가 바뀌면 `requestAnimationFrame` 한 번, 내 차 이동 애니메이션(0.6초) 동안만 이어서 그린다.
   - 격자는 기준점 둘레 m 평면에 한 번 그리고, 위치·방향이 바뀌면 컨테이너 변환만 바꾼다(heading-up). 격자는 색·투명도 묶음별로 한 경로에 모아 채운다.
-  - 글자(알림 목록·범례)는 DOM이 그린다. 한글 글꼴과 선명도를 시스템이 처리한다.
+  - 글자(알림 목록·범례)는 DOM이 그린다. 선명도는 시스템이 처리한다.
+  - 글꼴(2026-10-27): **차량 기본 글꼴을 그대로 쓴다**(Pleos: Asta Sans). 네이티브 화면은 기본값(`sans-serif`)만으로 따라가지만, WebView는 Pleos가 바꾼 글꼴 설정을 보지 못하고 Roboto·Noto로 그린다. 그래서 앱이 `SystemSansFont`로 기본 글꼴의 실제 파일을 찾아(같은 글자의 폭이 기본 글꼴과 똑같은 시스템 글꼴 파일) `shouldInterceptRequest`로 `system-fonts/sans-<굵기>`에 넘겨주고, 페이지는 이를 `@font-face` "Vehicle Sans"로 쓴다. 캔버스(Pixi) 글자는 첫 프레임 전에 글꼴을 불러 둔다(`shared/src/fonts.ts`).
+    - 이유: 플랫폼과 같은 글꼴이 직관적이다. 글꼴을 앱에 넣지 않으니 앱 크기가 그대로이고 재배포 표기 부담이 없으며, 차량 글꼴이 바뀌어도 따라간다. 파일을 못 찾으면(안드로이드 10 미만, 차량 밖 브라우저) 이전 글꼴로 돌아간다.
+    - 한글은 단어 단위로 줄을 바꾼다(`word-break: keep-all`).
   - WebGL1이 차단된 WebView라서 `WebGLRenderer`를 직접 만들어 WebGL2로 쓴다(`docs/pleos/open-questions.md`).
   - 지도 표현(2026-10-25 변경): 격자를 주인공으로 그리던 것을 바꿔, **배경 도로 위에 내 앞길을 상태별로 색칠**한다(내비의 교통 색처럼). 비 = 파랑(세기별), 어두움 = 노랑, 급정거 = 빨강, 구간 시작에 흰 점. 차 화면에서는 격자(네모)를 아예 그리지 않는다(`RoadMap({ cells: false })`, 관제 화면용으로 남겨 둠). 범례도 선 모양으로 바꿨다. 패널 위쪽의 "앞 5km 막대"가 같은 구간을 한 줄로 보여 준다.
     - 이유: 처음 보는 사람에게 150m 격자는 익명화 단위일 뿐 운전자가 생각하는 단위가 아니어서 이해가 어려웠다.

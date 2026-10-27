@@ -176,6 +176,18 @@ Pleos Connect Emulator 2.1.0, Android 14 (API 34), `crp_avd_arm64`, M5 Pro 맥.
 - 관찰(원인 모름): 22:07·22:09·22:22~22:23 주행 중에 홈 화면 쪽(uid 10119)이 런처 인텐트로 우리 앱과 내비를 2~3초 간격으로 번갈아 띄운 기록이 있다. 사용자는 누르지 않았다고 한다. 22:26 이후 주행에서는 없었다
 - 같이 고친 것: 런처·알림으로 다시 열 때마다 `MainActivity`가 새로 쌓이고 이전 화면(WebView 포함)이 남아 있었다(6개) → `launchMode="singleTask"`로 같은 화면을 앞으로 가져온다
 
+## 글꼴 (2026-10-27, 에뮬레이터)
+
+Pleos 개발 문서에서 글꼴·디자인 지침은 찾지 못했다. 에뮬레이터 이미지에서 확인한 사실:
+
+- `/product/fonts`: 42dot Sans, Asta Sans, Bai Jamjuree, Pretendard(파일). 글꼴 업데이트 영역 `/data/fonts/files/…`에도 Asta Sans가 있다
+- `/product/etc/fonts_customization.xml`(42dot): 안드로이드 기본 `sans-serif`를 **Asta Sans**로 바꾼다. `pretendard`라는 이름도 Asta Sans를 가리킨다. `asta-light`→42dot, `asta-semibold`/`asta-bold`→Bai Jamjuree 별칭
+- Asta Sans: 42dot이 만든 글꼴, 한글 포함, **OFL-1.1**(https://github.com/42dot/Asta-Sans)
+- 네이티브 View는 글꼴을 지정하지 않으면 Asta Sans로 그린다(설정 기준)
+- **WebView는 Pleos 글꼴을 보지 못한다**: `system-ui`·`sans-serif`가 Roboto + Noto Sans CJK KR로 그려지고, `"Asta Sans"`, `pretendard`, `42dot` 등 이름을 넣어도 기본 글꼴로 돌아간다(DevTools `CSS.getPlatformFontsForNode`)
+- 안드로이드 공개 API `SystemFonts.getAvailableFonts()`(API 29)는 Asta Sans 파일까지 돌려주고 앱이 읽을 수 있다. 같은 글자 폭 비교로 기본 글꼴의 실제 파일을 찾으면 굵기 400 = Regular, 600 = SemiBold, 700 = Bold(설정 파일만 보면 700이 ExtraBold처럼 보이지만 실제는 Bold)
+- 대응: 이 파일을 WebView에 넘겨 `@font-face`로 쓴다(docs/architecture.md 5장)
+
 ## 아직 문서를 안 읽은 것
 
 - [ ] 속도: 브리프는 Pleos FAQ가 AAOS `CarPropertyManager`의 `PERF_VEHICLE_SPEED`를 권장한다고 적었다. 이번에 다시 확인하지 않았다. 급정거 추정에 필요하다. (https://document.pleos.ai/docs/pleos-only/vehicle-app-developer-guide/vehicle-app-faq)

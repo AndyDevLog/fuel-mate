@@ -115,3 +115,4 @@ cd android
 | Pleos Vehicle SDK 2.3.2, NaviHelper SDK 3.0.5 | 앱 | Pleos Playground 제공 |
 | [OpenStreetMap](https://www.openstreetmap.org/copyright) | 데모 경로(`assets/tracks/sihung-pangyo-road.json`, 경로 계산은 [OSRM](https://project-osrm.org/)), 지도 배경 도로(`shared/data/roads-demo.json`, [Overpass API](https://overpass-api.de/)로 추출) | © OpenStreetMap contributors, ODbL 1.0 |
 | 기상청 단기예보 조회서비스(공공데이터포털) | 시뮬레이터 강수 자료 | 공공데이터포털 이용 조건 |
+| [Asta Sans](https://github.com/42dot/Asta-Sans) (42dot) | 화면 글꼴. 앱에 넣지 않고 차량(Pleos Connect)에 설치된 기본 글꼴을 그대로 쓴다 | SIL Open Font License 1.1 |

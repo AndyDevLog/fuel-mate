@@ -9,6 +9,7 @@ import android.webkit.ConsoleMessage
 import android.webkit.WebChromeClient
 import android.webkit.WebMessage
 import android.webkit.WebResourceRequest
+import android.webkit.WebResourceResponse
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import io.roadsensor.BuildConfig
@@ -51,6 +52,16 @@ class WebMapRenderer(context: Context) : MapRenderer {
 
             // 지도 페이지 밖으로 나가지 않는다
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest) = true
+
+            // 페이지가 부르는 system-fonts/sans-<굵기>에 차량 기본 글꼴 파일을 돌려준다(SystemSansFont).
+            // 없으면 null → 없는 asset이라 실패하고, 페이지는 다음 글꼴로 넘어간다
+            override fun shouldInterceptRequest(view: WebView, request: WebResourceRequest): WebResourceResponse? {
+                val weight = request.url.toString().removePrefix(FONT_PREFIX)
+                    .takeIf { request.url.toString().startsWith(FONT_PREFIX) }?.toIntOrNull() ?: return null
+                val file = SystemSansFont.file(weight) ?: return null
+                val mime = if (file.extension.equals("ttf", ignoreCase = true)) "font/ttf" else "font/otf"
+                return WebResourceResponse(mime, null, 200, "OK", mapOf("Access-Control-Allow-Origin" to "*"), file.inputStream())
+            }
         }
         if (BuildConfig.DEBUG) {
             webView.webChromeClient = object : WebChromeClient() {
@@ -97,5 +108,6 @@ class WebMapRenderer(context: Context) : MapRenderer {
 
     private companion object {
         const val PAGE = "file:///android_asset/web/index.html"
+        const val FONT_PREFIX = "file:///android_asset/web/system-fonts/sans-"
     }
 }

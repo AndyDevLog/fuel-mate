@@ -7,6 +7,7 @@
  * 세계 컨테이너의 변환만 바꾼다. 그래서 격자 수천 개라도 위치 갱신에는 도형을 다시 만들지 않는다.
  */
 import { Container, Graphics, Text } from "pixi.js";
+import { FONT_FAMILIES } from "../fonts.ts";
 import { LocalProjection, geohashBounds } from "../geo.ts";
 import type { CellView, LatLon, RenderModel, RouteView, SegmentView } from "../render-model.ts";
 import { palette } from "./palette.ts";
@@ -324,7 +325,7 @@ export class RoadMap {
     for (let km = 1; km * 1_000 <= radiusM; km++) {
       const rr = km * 1_000 * this.pxPerM;
       rings.circle(x, y, rr);
-      const text = new Text({ text: `${km}km`, style: { fontFamily: "sans-serif", fontSize: 18, fill: palette.ring } });
+      const text = new Text({ text: `${km}km`, style: { fontFamily: FONT_FAMILIES, fontSize: 18, fill: palette.ring } });
       text.alpha = 0.35;
       text.position.set(x + 8, y - rr - 24);
       this.ringLabels.addChild(text);
@@ -344,7 +345,7 @@ export class RoadMap {
       .circle(0, 0, 30).fill({ color: 0x000000, alpha: 0.35 }).stroke({ width: 1, color: 0xffffff, alpha: 0.3 })
       .poly([0, -22, 8, 0, -8, 0]).fill({ color: 0xff6b6b })
       .poly([0, 22, 8, 0, -8, 0]).fill({ color: 0xffffff, alpha: 0.6 });
-    const n = new Text({ text: "N", style: { fontFamily: "sans-serif", fontSize: 16, fontWeight: "bold", fill: 0xffffff } });
+    const n = new Text({ text: "N", style: { fontFamily: FONT_FAMILIES, fontSize: 16, fontWeight: "bold", fill: 0xffffff } });
     n.anchor.set(0.5);
     n.position.set(0, -44);
     this.north.addChild(g, n);

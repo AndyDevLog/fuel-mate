@@ -7,6 +7,7 @@
  * 주행 중에는 Kotlin이 WebView를 숨기고 onPause()하므로 여기까지 오지 않는다.
  */
 import { Container, WebGLRenderer, autoDetectRenderer, type Renderer } from "pixi.js";
+import { loadVehicleFont } from "../fonts.ts";
 import { RoadMap, type BaseRoads } from "../map/RoadMap.ts";
 import { palette } from "../map/palette.ts";
 import { CarTwin } from "../twin/CarTwin.ts";
@@ -133,6 +134,8 @@ async function createRenderer(): Promise<Renderer> {
 }
 
 async function start(): Promise<void> {
+  // 렌더러를 만드는 동안 차량 글꼴을 같이 불러 둔다(캔버스 글자는 첫 프레임의 글꼴로 굳는다)
+  const fonts = loadVehicleFont();
   try {
     renderer = await createRenderer();
   } catch (e) {
@@ -140,6 +143,7 @@ async function start(): Promise<void> {
     console.error(e);
     return;
   }
+  await fonts;
   console.info(`renderer ${renderer.name} ${renderer instanceof WebGLRenderer ? `webgl${renderer.context.webGLVersion}` : ""}`);
   document.getElementById("map")!.appendChild(renderer.canvas);
   twin.root.visible = false;

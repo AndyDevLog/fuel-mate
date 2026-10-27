@@ -180,6 +180,12 @@
   - 발견: 권한을 받기 전에 띄운 수집 서비스 상시 알림("도로 정보 공유 중")이 숨겨진 채 남아, 앱을 다시 켜야 보였다 → 권한 결과를 받으면 상시 알림을 다시 띄운다. 허용 직후 목록에 나타남을 확인
   - 허용 뒤 내비가 앞일 때 앞길 알림 카드 뜸, 10초 안에 사라짐
   - 주의: 권한 창이 떠 있을 때 앱을 다시 열면(`singleTask`) 권한 창이 닫히고 그 실행에서는 다시 묻지 않는다(다음에 앱을 새로 켤 때 묻는다)
+- [x] 차량 글꼴 따르기(2026-10-27, `feat/system-font`). 사용자 의견: Pleos Connect UX 방향은 직관성·편의성, 자체 글꼴이 있다
+  - 발견: Pleos 기본 글꼴은 Asta Sans(42dot, OFL-1.1). 네이티브 배너·버튼은 따라가지만 WebView 지도 패널·캔버스 글자는 Roboto·Noto였다([pleos/open-questions.md](pleos/open-questions.md) "글꼴")
+  - `SystemSansFont`: 시스템 글꼴 가운데 기본 글꼴과 글자 폭이 똑같은 파일을 굵기별로 찾는다(파일 이름에 기대지 않음). `WebMapRenderer`가 `system-fonts/sans-<굵기>` 요청에 그 파일을 돌려주고, 페이지는 `@font-face` "Vehicle Sans"로 쓴다. 앱 크기 그대로
+  - 캔버스(거리 고리 km, 나침반 N, 기어) 글자도 같은 글꼴, 첫 프레임 전에 글꼴을 불러 둔다(`shared/src/fonts.ts`). 한글 단어 단위 줄바꿈(`word-break: keep-all`)
+  - 에뮬레이터 확인: 패널 글자 모두 Asta Sans(Regular·SemiBold·Bold, DevTools), "Vehicle Sans" 400·600·700 loaded, 지도·내 차 화면 캔버스 글자 화면으로 확인. "…라이트를 / 켰습니다"로 줄바꿈
+  - 남은 것: "상태" 패널(디버그용)은 고정폭 글꼴 그대로
 
 ## 4단계 이후
 

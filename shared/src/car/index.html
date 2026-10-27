@@ -5,10 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
   <title>Road Sensor 지도</title>
   <style>
+    /* 차량 기본 글꼴(Pleos: Asta Sans). 앱이 시스템 글꼴 파일을 넘겨준다(WebMapRenderer·SystemSansFont).
+       못 받으면(차량 밖 브라우저 등) 다음 글꼴로 넘어간다 */
+    @font-face { font-family: "Vehicle Sans"; src: url("system-fonts/sans-400"); font-weight: 400; font-display: block; }
+    @font-face { font-family: "Vehicle Sans"; src: url("system-fonts/sans-600"); font-weight: 600; font-display: block; }
+    @font-face { font-family: "Vehicle Sans"; src: url("system-fonts/sans-700"); font-weight: 700; font-display: block; }
     :root { color-scheme: dark; --bg: #0b0f14; --panel: rgba(13, 18, 25, 0.92); --line: rgba(255, 255, 255, 0.08); --text: #e8edf2; --sub: #8a96a3; }
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; overflow: hidden; background: var(--bg); color: var(--text);
-      font-family: system-ui, "Noto Sans CJK KR", sans-serif; -webkit-user-select: none; user-select: none; }
+      font-family: "Vehicle Sans", system-ui, "Noto Sans CJK KR", sans-serif; -webkit-user-select: none; user-select: none;
+      /* 한글은 단어 단위로 줄을 바꾼다("켰습니" / "다"처럼 끊기지 않게). 너무 긴 단어만 글자 단위로 */
+      word-break: keep-all; overflow-wrap: anywhere; }
     #map, #map canvas { position: absolute; inset: 0; display: block; }
     #panel { position: absolute; left: 0; top: 0; bottom: 0; width: clamp(340px, 30vw, 760px); padding: 3.5vh 32px 3vh;
       background: var(--panel); border-right: 1px solid var(--line); display: flex; flex-direction: column; gap: 2vh; }

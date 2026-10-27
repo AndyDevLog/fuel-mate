@@ -50,7 +50,7 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 
 ## 오픈소스
 
-- OkHttp 4.12.0 (Apache License 2.0), Fastify, @fastify/websocket, PixiJS 8.22.0, esbuild(빌드 도구) (MIT). 번들 `map.js`에 함께 들어간 Pixi 의존 라이브러리 포함. 기상청 자료(공공데이터포털). 데모 궤적과 지도 배경 도로는 OpenStreetMap(ODbL). 지도 화면에 출처를 표시한다. 출처 표는 README에 있다. README를 쓸 때 출처를 남긴다.
+- OkHttp 4.12.0 (Apache License 2.0), Fastify, @fastify/websocket, PixiJS 8.22.0, esbuild(빌드 도구) (MIT). 번들 `map.js`에 함께 들어간 Pixi 의존 라이브러리 포함. 기상청 자료(공공데이터포털). 데모 궤적과 지도 배경 도로는 OpenStreetMap(ODbL). 화면 글꼴은 차량 기본 글꼴(Pleos: Asta Sans, 42dot, OFL-1.1)을 앱에 넣지 않고 그대로 쓴다. 지도 화면에 출처를 표시한다. 출처 표는 README에 있다. README를 쓸 때 출처를 남긴다.
 
 ## 기타
 

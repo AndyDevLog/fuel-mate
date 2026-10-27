@@ -3,6 +3,7 @@
  * 렌더 루프 원칙은 지도와 같다: 상태가 바뀔 때만 그리고, 와이퍼가 켜지는 순간 두 번 쓸고 나서 멈춘다.
  */
 import { Container, Graphics, Text } from "pixi.js";
+import { FONT_FAMILIES } from "../fonts.ts";
 import type { MyCarView } from "../render-model.ts";
 
 export interface TwinLayout { width: number; height: number; insetLeft: number }
@@ -27,7 +28,7 @@ export class CarTwin {
   private readonly lamps = new Graphics();
   private readonly brakeGlow = new Graphics();
   private readonly blades = [new Graphics(), new Graphics()];
-  private readonly gear = new Text({ text: "", style: { fontFamily: "sans-serif", fontSize: 40, fontWeight: "bold", fill: 0xffffff } });
+  private readonly gear = new Text({ text: "", style: { fontFamily: FONT_FAMILIES, fontSize: 40, fontWeight: "bold", fill: 0xffffff } });
 
   private state: MyCarView | null = null;
   private sweepStart = -1;
