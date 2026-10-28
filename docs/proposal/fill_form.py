@@ -80,7 +80,7 @@ def blocks(lines: list[str]) -> str:
 # ---- 화면 캡처(7번 칸에 붙임)
 IMAGES = [("map.jpg", "도로 지도(정차): 진행 방향 앞 5km를 비·어둠·급정거별로 칠한 앞길, 앞 5km 막대와 알림"),
           ("mycar.jpg", "내 차 화면: 차량 신호와 내가 보내는 신호"),
-          ("drive.jpg", "주행 모드: 큰 글자 한 줄 + 보조 한 줄, 앞길만 칠한 단순한 지도(애니메이션 없음)"),
+          ("drive.jpg", "주행 모드: 큰 글자 한 줄 + 보조 한 줄, 앞 3km를 한 줄로 칠한 앞길 띠(지도·애니메이션 없음)"),
           ("notify.jpg", "앞길 알림: 내비게이션을 켜 둔 채 주행할 때 화면 위에 잠깐 뜨는 카드")]
 media = unpacked / "word" / "media"
 media.mkdir(exist_ok=True)

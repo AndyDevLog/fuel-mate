@@ -29,9 +29,18 @@ data class RenderModel(
     val myCar: MyCarView,
     /** 지도 구독이 연결되어 있는가. 끊기면 격자가 비고 화면에 "오프라인"을 표시한다. */
     val online: Boolean,
+    /** 주행 화면의 앞길 띠. [Screen.DRIVE]일 때만 있다(정차 중 모델이 거리계 때문에 바뀌지 않게). */
+    val drive: DriveView? = null,
 )
 
-/** DRIVE = 주행 중 단순 지도(패널·버튼 없음, 애니메이션 없음). Activity가 주행 규제에 맞춰 고른다. */
+/**
+ * 앞길 띠: [odometerM] 위치의 내 차 기준 구간들([DriveStrip.Item], 거리는 내 차 기준).
+ * 렌더러는 거리계로 띠를 고정하고 내 차만 움직인다. [epoch]가 바뀌면 띠를 새로 맞춘다.
+ * [speedMps]는 그 위치를 받을 때의 차량 속도(모르면 null): 구간마다 가감속 곡선을 만드는 데 쓴다.
+ */
+data class DriveView(val odometerM: Int, val epoch: Int, val speedMps: Float?, val items: List<DriveStrip.Item>)
+
+/** DRIVE = 주행 중 앞길 띠(패널·버튼·지도 없음). Activity가 주행 규제에 맞춰 고른다. */
 enum class Screen { MAP, MY_CAR, DRIVE }
 
 /** 진행 방향 판정 범위. 렌더러가 같은 상수를 따로 두지 않게 넘긴다. */
@@ -109,6 +118,9 @@ object RenderModels {
         alerts = state.alerts.map(::alertView),
         myCar = myCarView(state),
         online = state.link.feedConnected,
+        drive = if (screen == Screen.DRIVE) {
+            DriveView(state.odometer.meters.toInt(), state.odometer.epoch, state.odometer.speedMps, DriveStrip.of(state.ahead))
+        } else null,
     )
 
     private val AHEAD = AheadView(

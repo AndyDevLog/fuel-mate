@@ -2,9 +2,12 @@ package io.roadsensor.core.store
 
 import io.roadsensor.core.detect.HardBrakeRule
 import io.roadsensor.core.geo.AheadFilter
+import io.roadsensor.core.geo.GeoMath
 import io.roadsensor.core.geo.RouteAhead
 import io.roadsensor.core.model.AppState
 import io.roadsensor.core.model.DriveMode
+import io.roadsensor.core.model.GeoPoint
+import io.roadsensor.core.model.Odometer
 import io.roadsensor.core.model.RoadEvent
 import io.roadsensor.core.model.VehicleSnapshot
 
@@ -47,7 +50,11 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
 
     is Action.DriveModeChanged -> state.copy(drive = DriveMode(action.restricted, action.activeRestrictions))
 
-    is Action.LocationFixed -> state.copy(location = action.fix, routeAhead = action.routeAhead).withAlerts()
+    is Action.LocationFixed -> state.copy(
+        location = action.fix,
+        routeAhead = action.routeAhead,
+        odometer = state.odometer.advance(state.location?.point, action.fix.point).copy(speedMps = state.vehicle.speedMps),
+    ).withAlerts()
     is Action.DestinationChanged -> state.copy(destination = action.destination).withAlerts()
 
     is Action.CellsUpdated -> {
@@ -61,6 +68,12 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
     is Action.FeedStatusChanged ->
         if (action.connected) state.copy(link = state.link.copy(feedConnected = true))
         else state.copy(link = state.link.copy(feedConnected = false), cells = emptyMap()).withAlerts()
+}
+
+private fun Odometer.advance(from: GeoPoint?, to: GeoPoint): Odometer {
+    if (from == null) return copy(epoch = epoch + 1)
+    val d = GeoMath.distanceM(from, to)
+    return if (d > Odometer.JUMP_M) copy(epoch = epoch + 1) else copy(meters = meters + d)
 }
 
 private inline fun AppState.withVehicle(change: VehicleSnapshot.() -> VehicleSnapshot) =

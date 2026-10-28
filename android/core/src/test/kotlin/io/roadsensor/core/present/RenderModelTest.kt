@@ -104,7 +104,7 @@ class RenderModelTest {
                 """"alerts":[{"kind":"RAIN","cell":"wydm9qk","distanceM":1200,"distanceText":"1.2km","label":"비 \"강\"","headline":"약 1.2km 앞","here":false,""" +
                 """"cells":["wydm9qk","wydm9qs"],"lengthText":"400m 구간","reportersText":"앞서 간 차 4대가 와이퍼를 켰습니다"}],""" +
                 """"myCar":{"wiperOn":true,"wiperText":"연속 1","rainLevel":1,"lowBeamOn":null,"tailLampOn":true,""" +
-                """"brakePressed":false,"gear":"P","telltales":["ABS ON"],"hardBrakes":2},"online":true}""",
+                """"brakePressed":false,"gear":"P","telltales":["ABS ON"],"hardBrakes":2},"online":true,"drive":null}""",
             RenderModelJson.encode(m),
         )
     }

@@ -29,7 +29,7 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 
 ## 차량 정책 (필수)
 
-- 주행/정차 판단은 `CarUxRestrictions`만 따른다. 주행 중에는 위쪽 네이티브 배너(큰 글자 한 줄 + 보조 한 줄)와 애니메이션 없는 단순 지도(배경 도로 + 앞길 색칠 + 내 차, 1초마다 제자리 갱신)만 보여 준다. 버튼·패널·설정은 숨긴다. `LIMIT_CONTENT` 규제가 켜지면 지도를 멈추고 한 줄만 보여 준다.
+- 주행/정차 판단은 `CarUxRestrictions`만 따른다. 주행 중에는 위쪽 네이티브 배너(큰 글자 한 줄 + 보조 한 줄)와 그 아래 **앞길 띠**(내 차 뒤 150m ~ 앞 3km를 한 줄로, 자동차 아이콘 + 구간 색 + 짧은 문구)만 보여 준다. 띠는 고정하고 내 차만 움직이며(위치 사이를 차량 실제 속도로 만든 에르미트 곡선으로 이어 가감속이 자연스럽게), 2km를 가면 0.6초 동안 띠와 함께 미끄러뜨려 다시 맞춘다. 그 밖의 애니메이션·효과는 없다(연출은 정차 화면에서). 지도(Pixi)는 그리지 않는다. 버튼·패널·설정은 숨긴다. `LIMIT_CONTENT` 규제가 켜지면 띠를 숨기고 한 줄만 보여 준다.
 - 주행 중 표시가 필요한 Activity에는 `distractionOptimized` 메타데이터를 선언한다.
 - 최상단 화면에서 Back 하드키를 누르면 종료하지 않고 `moveTaskToBack(true)`로 숨긴다.
 - 필수 조작은 터치만으로 끝나야 한다. CCP(다이얼)는 지원하지 않는다고 선언한다(`com.hmg.rotary.ROTARY_SUPPORTED`=false).
@@ -50,7 +50,7 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 
 ## 오픈소스
 
-- OkHttp 4.12.0 (Apache License 2.0), Fastify, @fastify/websocket, PixiJS 8.22.0, esbuild(빌드 도구) (MIT). 번들 `map.js`에 함께 들어간 Pixi 의존 라이브러리 포함. 기상청 자료(공공데이터포털). 데모 궤적과 지도 배경 도로는 OpenStreetMap(ODbL). 화면 글꼴은 차량 기본 글꼴(Pleos: Asta Sans, 42dot, OFL-1.1)을 앱에 넣지 않고 그대로 쓴다. 지도 화면에 출처를 표시한다. 출처 표는 README에 있다. README를 쓸 때 출처를 남긴다.
+- OkHttp 4.12.0 (Apache License 2.0), Fastify, @fastify/websocket, PixiJS 8.22.0, esbuild(빌드 도구) (MIT). GSAP 3.15.0(Standard 'no charge' License, Webflow. 오픈소스 아님, 번들의 저작권 고지를 지우지 않는다). 번들 `map.js`에 함께 들어간 Pixi 의존 라이브러리 포함. 기상청 자료(공공데이터포털). 데모 궤적과 지도 배경 도로는 OpenStreetMap(ODbL). 화면 글꼴은 차량 기본 글꼴(Pleos: Asta Sans, 42dot, OFL-1.1)을 앱에 넣지 않고 그대로 쓴다. 지도 화면에 출처를 표시한다. 출처 표는 README에 있다. README를 쓸 때 출처를 남긴다.
 
 ## 기타
 

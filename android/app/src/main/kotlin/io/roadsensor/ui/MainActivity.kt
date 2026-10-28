@@ -171,6 +171,7 @@ class MainActivity : Activity() {
             addView(statusPanel, FrameLayout.LayoutParams(1000, MATCH_PARENT, Gravity.END).apply {
                 setMargins(0, 260, 24, 24)
             })
+            // 주행 화면: 위쪽 배너는 네이티브(WebView가 문제를 일으켜도 남는다), 그 아래 앞길 띠는 WebView(GSAP)
             addView(driveBanner, FrameLayout.LayoutParams(MATCH_PARENT, MATCH_PARENT))
         })
 
@@ -240,18 +241,17 @@ class MainActivity : Activity() {
         lastState?.let { if (open) statusText.text = StatusText.of(it) }
     }
 
-    /** 렌더러는 화면이 앞에 있고, 정차 중이거나 주행 지도를 보여도 될 때만 돈다. 아니면 숨기고 멈춘다(WebView.onPause). */
+    /** 렌더러는 화면이 앞에 있고, 정차 중이거나 주행 중 앞길 띠를 보여도 될 때만 돈다. 아니면 숨기고 멈춘다(WebView.onPause). */
     private fun updateRenderer() {
         if (resumed && (!driving || driveMap)) renderer.resume() else renderer.pause()
     }
 
-    /** 주행 배너: 지도가 있으면 위쪽 띠, 없으면(LIMIT_CONTENT) 화면 전체. */
+    /** 주행 배너: 앞길 띠를 보여도 되면 위쪽, 안 되면(LIMIT_CONTENT) 화면 전체. */
     private fun layoutDriveBanner() {
         val lp = driveBanner.layoutParams as FrameLayout.LayoutParams
         lp.height = if (driveMap) WRAP_CONTENT else MATCH_PARENT
         lp.gravity = Gravity.TOP
         driveBanner.layoutParams = lp
-        driveBanner.setBackgroundColor(if (driveMap) Color.argb(0xE6, 0, 0, 0) else Color.BLACK)
     }
 
     private var askedPermissions = false

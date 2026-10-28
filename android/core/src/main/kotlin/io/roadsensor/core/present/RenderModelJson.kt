@@ -73,6 +73,19 @@ object RenderModelJson {
         else { append('['); car.telltales.forEachIndexed { i, t -> if (i > 0) append(','); str(t) }; append(']') }
         append(",\"hardBrakes\":").append(car.hardBrakes).append('}')
         append(",\"online\":").append(m.online)
+        append(",\"drive\":")
+        val d = m.drive
+        if (d == null) append("null") else {
+            append("{\"odometerM\":").append(d.odometerM).append(",\"epoch\":").append(d.epoch)
+            append(",\"speedMps\":").append(d.speedMps?.toString() ?: "null").append(",\"items\":[")
+            d.items.forEachIndexed { i, it ->
+                if (i > 0) append(',')
+                append("{\"fromM\":").append(it.fromM).append(",\"toM\":").append(it.toM)
+                append(",\"kind\":").str(it.kind.name).append(",\"rainLevel\":").append(it.rainLevel.code)
+                append(",\"label\":").str(it.label).append('}')
+            }
+            append("]}")
+        }
         append('}')
     }
 

@@ -109,6 +109,7 @@ cd android
 | [OkHttp](https://square.github.io/okhttp/) 4.12.0 | 앱: 지도 구독 WebSocket | Apache License 2.0 |
 | [kotlinx.coroutines](https://github.com/Kotlin/kotlinx.coroutines) 1.10.2 | 앱 | Apache License 2.0 |
 | [PixiJS](https://pixijs.com/) 8.22.0 | 지도 그리기(앱 번들에 포함) | MIT |
+| [GSAP](https://gsap.com/) 3.15.0 | 주행 화면 앞길 띠의 움직임(앱 번들에 포함, 저작권 고지 유지) | [Standard 'no charge' License](https://gsap.com/standard-license) (Webflow) |
 | PixiJS 의존 라이브러리: @pixi/colord, earcut, eventemitter3, gifuct-js, ismobilejs, parse-svg-path, @xmldom/xmldom, tiny-lru | 앱 번들에 포함될 수 있음 | MIT, ISC(earcut), BSD-3-Clause(tiny-lru) |
 | [Fastify](https://fastify.dev/) 5.12.7, [@fastify/websocket](https://github.com/fastify/fastify-websocket) 11.3.4 | 서버 | MIT |
 | [esbuild](https://esbuild.github.io/) 0.28.2 | 지도 번들 빌드 도구 | MIT |

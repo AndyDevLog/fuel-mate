@@ -78,9 +78,27 @@ export interface RouteView {
   segments: SegmentView[];
 }
 
+/** 주행 화면 앞길 띠의 구간 하나. 거리는 내 차 기준(m, 지금 들어선 구간은 뒤 150m부터). 문구는 Kotlin DriveStrip이 만든다 */
+export interface DriveItem {
+  fromM: number;
+  toM: number;
+  kind: AlertKind;
+  rainLevel: RainLevel;
+  label: string;
+}
+
+/** 주행 화면 앞길 띠. odometerM으로 띠를 고정하고 내 차만 움직인다. epoch가 바뀌면 띠를 새로 맞춘다 */
+export interface DriveView {
+  odometerM: number;
+  epoch: number;
+  /** 그 위치를 받을 때의 차량 속도(m/s). 모르면 null(선형으로 움직인다) */
+  speedMps: number | null;
+  items: DriveItem[];
+}
+
 export interface RenderModel {
   v: number;
-  /** DRIVE = 주행 중 단순 지도(패널 없음, 애니메이션 없음) */
+  /** DRIVE = 주행 중 앞길 띠(패널·지도 없음). 위쪽 큰 글자 배너는 Kotlin이 네이티브로 그린다 */
   screen: "MAP" | "MY_CAR" | "DRIVE";
   center: LatLon | null;
   /** 진행 방향(북 0°, 시계 방향) */
@@ -92,4 +110,6 @@ export interface RenderModel {
   alerts: AlertView[];
   myCar: MyCarView;
   online: boolean;
+  /** screen이 DRIVE일 때만 있다 */
+  drive: DriveView | null;
 }

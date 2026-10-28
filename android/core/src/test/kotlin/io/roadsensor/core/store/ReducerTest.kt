@@ -12,6 +12,9 @@ import io.roadsensor.core.model.RainLevel
 import io.roadsensor.core.model.RoadAlert
 import io.roadsensor.core.model.RoadEvent
 import io.roadsensor.core.present.DriveLine
+import io.roadsensor.core.present.RenderModelJson
+import io.roadsensor.core.present.RenderModels
+import io.roadsensor.core.present.Screen
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -119,6 +122,33 @@ class ReducerTest {
         val navi = s.apply(Action.LocationFixed(GeoFix(next, 140f, 1, LocationOrigin.NAVI_HELPER)))
         assertNull(navi.routeAhead)
         assertTrue(navi.ahead?.estimated == true)
+    }
+
+    @Test
+    fun `거리계는 이동한 만큼 더하고, 위치가 튀면 더하지 않고 epoch를 올린다`() {
+        val a = GeoPoint(37.4127212, 127.094681)
+        val b = GeoPoint(37.4127212, 127.094681 + 100 / 88_430.0) // 동쪽 약 100m
+        val far = GeoPoint(37.39479166, 127.11256944) // 약 2.5km 떨어짐(데모 경로가 처음으로 돌아갈 때처럼)
+        val fix = { p: GeoPoint -> Action.LocationFixed(GeoFix(p, 90f, 0, LocationOrigin.DEMO_TRACK)) }
+
+        var s = AppState().apply(Action.SpeedSample(0, 20f), fix(a))
+        assertEquals(1, s.odometer.epoch) // 첫 위치에서 띠를 처음 맞춘다
+        assertEquals(20f, s.odometer.speedMps) // 위치를 받을 때의 속도를 찍어 둔다
+        s = s.apply(fix(b))
+        assertTrue(s.odometer.meters in 95.0..105.0, "${s.odometer.meters}")
+        assertEquals(1, s.odometer.epoch)
+        s = s.apply(fix(far))
+        assertTrue(s.odometer.meters in 95.0..105.0, "튄 거리는 더하지 않는다: ${s.odometer.meters}")
+        assertEquals(2, s.odometer.epoch)
+
+        // 주행 화면 모델에만 띠 정보가 실린다
+        assertEquals(null, RenderModels.of(s, Screen.MAP).drive)
+        val drive = RenderModels.of(s, Screen.DRIVE).drive!!
+        assertEquals(s.odometer.meters.toInt(), drive.odometerM)
+        assertEquals(2, drive.epoch)
+        assertTrue(RenderModelJson.encode(RenderModels.of(s, Screen.DRIVE)).contains("\"drive\":{\"odometerM\":"))
+        assertEquals(20f, drive.speedMps)
+        assertTrue(RenderModelJson.encode(RenderModels.of(s, Screen.DRIVE)).contains("\"speedMps\":20.0"))
     }
 
     @Test
