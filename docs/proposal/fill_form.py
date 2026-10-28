@@ -1,7 +1,7 @@
 """docs/proposal.md → 공식 접수양식 02의 8개 답변 칸. 01·03·04(개인정보)는 건드리지 않는다.
 
 양식: 공모전 사이트 /downloads/contest-application-consent.docx (저장소에 넣지 않는다)
-캡처 폴더: map.jpg, mycar.jpg, drive.jpg (에뮬레이터 앱 영역)
+캡처 폴더: map.jpg, mycar.jpg, drive.jpg(에뮬레이터 앱 영역), notify.jpg(내비 위 알림, 전체 화면)
 
   mkdir -p /tmp/form && unzip -q contest-application-consent.docx -d /tmp/form/unpacked
   python3 docs/proposal/fill_form.py docs/proposal.md /tmp/form/unpacked <캡처 폴더>
@@ -78,9 +78,10 @@ def blocks(lines: list[str]) -> str:
 
 
 # ---- 화면 캡처(7번 칸에 붙임)
-IMAGES = [("map.jpg", "도로 지도(정차): 격자별 비 세기, 진행 방향 앞 5km, 알림 구간"),
+IMAGES = [("map.jpg", "도로 지도(정차): 진행 방향 앞 5km를 비·어둠·급정거별로 칠한 앞길, 앞 5km 막대와 알림"),
           ("mycar.jpg", "내 차 화면: 차량 신호와 내가 보내는 신호"),
-          ("drive.jpg", "주행 모드: 큰 글자 한 줄 알림(지도·애니메이션 정지)")]
+          ("drive.jpg", "주행 모드: 큰 글자 한 줄 + 보조 한 줄, 앞길만 칠한 단순한 지도(애니메이션 없음)"),
+          ("notify.jpg", "앞길 알림: 내비게이션을 켜 둔 채 주행할 때 화면 위에 잠깐 뜨는 카드")]
 media = unpacked / "word" / "media"
 media.mkdir(exist_ok=True)
 rels_path = unpacked / "word" / "_rels" / "document.xml.rels"
