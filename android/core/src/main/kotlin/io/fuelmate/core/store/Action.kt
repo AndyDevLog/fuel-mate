@@ -1,5 +1,7 @@
 package io.fuelmate.core.store
 
+import io.fuelmate.core.cost.AvgFuelPrices
+import io.fuelmate.core.cost.ChargeTier
 import io.fuelmate.core.model.EnergyKind
 import io.fuelmate.core.model.EnergyOrigin
 import io.fuelmate.core.model.Gear
@@ -31,6 +33,10 @@ sealed interface Action {
         val capacity: Double? = null,
         val percent: Float? = null,
     ) : Action
+
+    // 단가 (오피넷 평균가는 서비스가 하루 한 번 받는다, 충전요금 단계는 사용자 설정)
+    data class FuelPriceUpdated(val prices: AvgFuelPrices) : Action
+    data class ChargeTierChanged(val tier: ChargeTier) : Action
 
     // 운행 기록 (앱이 차 안 저장소에서 읽어 되돌린다)
     data class TripsRestored(val trips: List<Trip>) : Action

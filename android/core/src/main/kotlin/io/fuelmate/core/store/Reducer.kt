@@ -29,6 +29,11 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
 
     is Action.EnergyReading -> reduceEnergy(state, action)
 
+    is Action.FuelPriceUpdated -> action.prices.gasoline
+        ?.let { state.copy(prices = state.prices.copy(fuelWonPerL = it, fuelTradeDate = action.prices.tradeDate)) }
+        ?: state
+    is Action.ChargeTierChanged -> state.copy(prices = state.prices.copy(chargeTier = action.tier))
+
     is Action.TripsRestored -> state.copy(trips = action.trips.take(AppState.MAX_TRIPS))
 
     is Action.LocationFixed -> state.copy(

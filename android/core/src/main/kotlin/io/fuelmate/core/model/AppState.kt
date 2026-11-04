@@ -1,5 +1,6 @@
 package io.fuelmate.core.model
 
+import io.fuelmate.core.cost.UnitPrices
 import io.fuelmate.core.detect.DriveTracker
 
 /**
@@ -23,6 +24,8 @@ data class AppState(
     val trip: Trip? = null,
     /** 끝난 운행(새 것이 앞). 최대 [MAX_TRIPS]개. 앱이 차 안에 저장하고 다시 켤 때 되돌린다 */
     val trips: List<Trip> = emptyList(),
+    /** 에너지 단가. 오피넷 평균가를 받기 전에는 가정값 */
+    val prices: UnitPrices = UnitPrices.ASSUMED,
     /** 운전 사건 판정용 내부 상태. 화면은 쓰지 않는다 */
     val driveTracker: DriveTracker = DriveTracker(),
 ) {

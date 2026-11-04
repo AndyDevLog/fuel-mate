@@ -7,28 +7,6 @@ import io.fuelmate.core.model.EnergyKind
 import io.fuelmate.core.model.Trip
 import kotlin.math.max
 
-/**
- * 에너지 단가(원). 유가·전기 단가 단계 전까지는 [ASSUMED]를 쓰고, 화면에 "가정 단가"라고 밝힌다.
- */
-data class UnitPrices(
-    val fuelWonPerL: Double,
-    val electricWonPerKWh: Double,
-    val assumed: Boolean,
-) {
-    fun of(kind: EnergyKind) = when (kind) {
-        EnergyKind.FUEL -> fuelWonPerL
-        EnergyKind.ELECTRIC -> electricWonPerKWh
-    }
-
-    companion object {
-        /**
-         * 휘발유 1,700원/L는 docs/pivot-fuel.md 13-3 어림 계산과 같은 값이다.
-         * 전기 347.2원/kWh는 공공 급속(100kW 이상) 충전 요금 수준으로 잡은 값이고 확인 필요다
-         */
-        val ASSUMED = UnitPrices(fuelWonPerL = 1_700.0, electricWonPerKWh = 347.2, assumed = true)
-    }
-}
-
 enum class HabitCategory(val label: String) {
     BRAKING("급제동·급감속"),
     HIGH_SPEED("시속 100km 넘는 고속"),

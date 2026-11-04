@@ -8,7 +8,7 @@
 
 - Pleos Connect Emulator 2.1.0(Android Studio 에뮬레이터, AVD 이름 예: `Pleos_Connect_v2.1.0`). 앱은 AAOS 사용자 10에서 실행됩니다.
 - 에뮬레이터 차량은 전기차입니다. 위치는 고정이라 앱은 기본으로 데모 경로(시흥동 → 판교역)를 재생합니다.
-- 에뮬레이터는 달려도 배터리가 줄지 않아서, 앱은 기본으로 **데모 전기차**(속도로 소비를 계산해 잔량을 줄임, 시작 35%)를 씁니다. 차가 주는 실제 값(Pleos Fuel·EvBattery)이나 데모 연료차로 바꾸려면 아래 "에너지 공급원 바꾸기"를 보세요.
+- 시연은 휘발유 차 기준입니다(지금 Pleos Connect가 탑재된 차는 가솔린·하이브리드·LPG 그랜저). 에뮬레이터 차는 전기차라 연료 값을 주지 않으므로, 앱은 기본으로 **데모 연료차**(60L 탱크 25%에서 시작, 실제 속도 신호로 소비를 계산해 연료를 줄임)를 씁니다. 차가 주는 실제 값(Pleos Fuel·EvBattery)이나 데모 전기차로 바꾸려면 아래 "에너지 공급원 바꾸기"를 보세요.
 - 속도·기어·브레이크는 Virtual Console(`adb forward tcp:8088 tcp:8088` 후 `http://127.0.0.1:8088/`)로 바꿉니다.
 
 ## 실행 방법
@@ -29,11 +29,19 @@ adb shell pm grant --user 10 io.fuelmate android.car.permission.CAR_SPEED
 adb shell am start --user 10 -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n io.fuelmate/.ui.MainActivity
 ```
 
-에너지 공급원 바꾸기(앱을 다시 켜도 유지됩니다): `VEHICLE`(차량 값), `DEMO_EV`(데모 전기차, 기본), `DEMO_FUEL`(데모 연료차)
+에너지 공급원 바꾸기(앱을 다시 켜도 유지됩니다): `VEHICLE`(차량 값), `DEMO_FUEL`(데모 연료차, 기본), `DEMO_EV`(데모 전기차)
 
 ```bash
 adb shell am start --user 10 -n io.fuelmate/.ui.MainActivity --es energy VEHICLE
 ```
+
+충전요금 단계 바꾸기(전기 단가, 기본 `FAST_100`): `SLOW`, `FAST_30`, `FAST_50`, `FAST_100`, `ULTRA`
+
+```bash
+adb shell am start --user 10 -n io.fuelmate/.ui.MainActivity --es chargeTier FAST_100
+```
+
+오피넷 인증키(선택): [오피넷 오픈 API](https://www.opinet.co.kr/user/custapi/openApiNew.do)에서 받은 키를 저장소 밖 `~/.android-keys/fuel-mate/api-keys.properties`에 `opinetCertKey=<키>`로 넣고 빌드합니다. 키가 없으면 휘발유 가정 단가(1,700원/L)를 씁니다.
 
 빌드에는 Android Studio 내장 JBR(`JAVA_HOME`)과 Android SDK(`ANDROID_HOME`)가 필요합니다. 단위 테스트는 `cd android && ./gradlew :core:test`.
 
@@ -52,4 +60,6 @@ adb shell am start --user 10 -n io.fuelmate/.ui.MainActivity --es energy VEHICLE
 | --- | --- | --- |
 | Pleos Vehicle SDK, NaviHelper SDK | 차량 신호, 위치·경로 | Pleos Playground 이용 조건 |
 | kotlinx.coroutines | 상태 스토어 | Apache License 2.0 |
+| 오피넷 "주유소 전국 평균가격(현재)" 오픈 API(한국석유공사, [공공데이터포털 15150932](https://www.data.go.kr/data/15150932/openapi.do)) | 휘발유 단가(하루 한 번, 위치를 보내지 않음) | 공공데이터포털 표기 "이용허락범위 제한 없음". 오피넷 저작권정책은 수익 목적 이용 시 공사와 사전 협의, 출처 표기(한국석유공사) |
+| 기후에너지환경부 공공 전기차 충전요금(2026-08-01 시행 5단계) | 전기 단가(사용자가 단계 선택) | 보도 기준 값, 공식 고시 원문 확인 필요 |
 | OpenStreetMap, OSRM | 데모 경로(`android/app/src/main/assets/tracks/`) | © OpenStreetMap contributors, ODbL |

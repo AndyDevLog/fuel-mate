@@ -15,6 +15,7 @@ import android.os.IBinder
 import android.view.Window
 import android.widget.TextView
 import io.fuelmate.Log
+import io.fuelmate.core.cost.ChargeTier
 import io.fuelmate.core.model.AppState
 import io.fuelmate.energy.EnergyMode
 import io.fuelmate.service.CollectorService
@@ -37,6 +38,7 @@ class MainActivity : Activity() {
     private var askedPermissions = false
     /** 실행 인텐트로 받은 에너지 공급원(개발·시연용). 서비스에 연결되면 넘긴다 */
     private var pendingEnergyMode: EnergyMode? = null
+    private var pendingChargeTier: ChargeTier? = null
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -81,12 +83,18 @@ class MainActivity : Activity() {
             pendingEnergyMode = runCatching { EnergyMode.valueOf(name) }.getOrNull()
                 ?: null.also { Log.w("모르는 에너지 공급원: $name") }
         }
+        intent?.getStringExtra(EXTRA_CHARGE_TIER)?.let { name ->
+            pendingChargeTier = runCatching { ChargeTier.valueOf(name) }.getOrNull()
+                ?: null.also { Log.w("모르는 충전요금 단계: $name") }
+        }
     }
 
     private fun applyPendingModes() {
         val b = binder ?: return
         pendingEnergyMode?.let { b.setEnergyMode(it) }
         pendingEnergyMode = null
+        pendingChargeTier?.let { b.setChargeTier(it) }
+        pendingChargeTier = null
     }
 
     override fun onDestroy() {
@@ -130,5 +138,7 @@ class MainActivity : Activity() {
         const val REQUEST_PERMISSIONS = 1
         /** `--es energy VEHICLE|DEMO_EV|DEMO_FUEL` */
         const val EXTRA_ENERGY = "energy"
+        /** `--es chargeTier SLOW|FAST_30|FAST_50|FAST_100|ULTRA` */
+        const val EXTRA_CHARGE_TIER = "chargeTier"
     }
 }

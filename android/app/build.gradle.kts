@@ -18,6 +18,19 @@ val keystoreProps: Properties? = run {
 }
 val debugSignRelease = (findProperty("fuelMate.debugSignRelease") as String?) == "true"
 
+/**
+ * 외부 API 키도 저장소 밖에 둔다. 기본 위치: ~/.android-keys/fuel-mate/api-keys.properties
+ * - opinetCertKey: 오피넷 오픈 API 인증키(https://www.opinet.co.kr/user/custapi/openApiNew.do에서 발급)
+ * 다른 위치는 -PfuelMate.apiKeys=<경로>. 키가 없으면 빈 값으로 빌드되고 앱은 가정 단가를 쓴다.
+ * 키는 APK 안에 들어가므로 APK를 받은 사람은 꺼낼 수 있다(하루 호출 한도를 나눠 쓰게 된다).
+ */
+val apiKeys: Properties = Properties().apply {
+    val path = (findProperty("fuelMate.apiKeys") as String?)
+        ?: "${System.getProperty("user.home")}/.android-keys/fuel-mate/api-keys.properties"
+    file(path).takeIf { it.isFile }?.inputStream()?.use(::load)
+}
+fun apiKey(name: String): String = (apiKeys.getProperty(name) ?: "").trim().replace("\"", "")
+
 android {
     namespace = "io.fuelmate"
     compileSdk = 34
@@ -28,6 +41,11 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
+        buildConfigField("String", "OPINET_CERT_KEY", "\"${apiKey("opinetCertKey")}\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     signingConfigs {

@@ -4,6 +4,7 @@ import io.fuelmate.core.cost.HabitBaseline
 import io.fuelmate.core.cost.HabitCostEstimator
 import io.fuelmate.core.model.AppState
 import io.fuelmate.core.model.DriveEvent
+import io.fuelmate.core.model.EnergyKind
 import io.fuelmate.core.model.EnergyOrigin
 import io.fuelmate.core.model.Gear
 import io.fuelmate.core.model.LocationOrigin
@@ -25,6 +26,8 @@ object StatusText {
             appendLine("이번 실행 사용: ${"%.2f".format(s.energyMeter.used)} ${e.kind.unit}" +
                 if (s.energyMeter.added > 0) ", 충전·주유 ${"%.2f".format(s.energyMeter.added)} ${e.kind.unit}" else "")
         }
+        appendLine("단가: 휘발유 ${"%,.1f".format(s.prices.fuelWonPerL)}원/L(${s.prices.basis(EnergyKind.FUEL)}), " +
+            "전기 ${"%,.1f".format(s.prices.electricWonPerKWh)}원/kWh(${s.prices.basis(EnergyKind.ELECTRIC)})")
         appendLine("이번 실행 주행 거리: ${"%.1f".format(s.odometer.meters / 1000)} km")
         appendLine("위치: ${s.location?.origin?.let { if (it == LocationOrigin.DEMO_TRACK) "데모 경로" else "내비" } ?: "모름"}")
         appendLine()
@@ -34,8 +37,8 @@ object StatusText {
 
         // 진행 중이면 지금 운행, 아니면 지난 운행의 습관 비용
         val trip = s.trip ?: s.trips.firstOrNull() ?: return@buildString
-        val cost = HabitCostEstimator.estimate(trip) ?: return@buildString
-        val comparison = HabitBaseline.compare(trip, s.trips)
+        val cost = HabitCostEstimator.estimate(trip, s.prices) ?: return@buildString
+        val comparison = HabitBaseline.compare(trip, s.trips, s.prices)
         appendLine()
         appendLine("${if (s.trip != null) "지금" else "지난"} 운행 ${HabitText.summary(cost, comparison)}")
         HabitText.explanation(cost, comparison).forEach { appendLine("  $it") }

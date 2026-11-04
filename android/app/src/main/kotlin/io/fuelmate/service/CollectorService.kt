@@ -10,6 +10,7 @@ import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.IBinder
 import io.fuelmate.Log
+import io.fuelmate.core.cost.ChargeTier
 import io.fuelmate.core.model.EnergyKind
 import io.fuelmate.core.model.GeoFix
 import io.fuelmate.core.model.GeoPoint
@@ -24,6 +25,8 @@ import io.fuelmate.location.LocationMode
 import io.fuelmate.location.LocationSink
 import io.fuelmate.location.LocationSource
 import io.fuelmate.location.NaviHelperSource
+import io.fuelmate.price.ChargeTierSetting
+import io.fuelmate.price.FuelPriceSource
 import io.fuelmate.trip.TripStorage
 import io.fuelmate.ui.MainActivity
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +56,7 @@ class CollectorService : Service() {
     private lateinit var energy: EnergySource
     private lateinit var energyMode: EnergyMode
     private lateinit var tripStorage: TripStorage
+    private lateinit var fuelPrice: FuelPriceSource
     private val scope = MainScope()
 
     inner class LocalBinder : Binder() {
@@ -65,6 +69,10 @@ class CollectorService : Service() {
         }
         fun setLocationMode(mode: LocationMode) = this@CollectorService.switchLocation(mode)
         fun setEnergyMode(mode: EnergyMode) = this@CollectorService.switchEnergy(mode)
+        fun setChargeTier(tier: ChargeTier) {
+            ChargeTierSetting.save(this@CollectorService, tier)
+            store.dispatch(Action.ChargeTierChanged(tier))
+        }
     }
 
     // 원본 좌표는 로그에 남기지 않는다(데모·디버그 빌드도 기본으로 남기지 않는다)
@@ -85,6 +93,10 @@ class CollectorService : Service() {
         store.dispatch(Action.TripsRestored(tripStorage.load()))
         Log.i("운행 기록 ${store.state.value.trips.size}개 불러옴")
         saveTripsOnChange()
+
+        // 단가: 충전요금 단계(설정)와 오피넷 평균 유가(캐시 → 하루 한 번 갱신)
+        store.dispatch(Action.ChargeTierChanged(ChargeTierSetting.load(this)))
+        fuelPrice = FuelPriceSource(this, scope, store::dispatch).also { it.start() }
 
         vehicle = PleosVehicleAdapter(this, store::dispatch).also { it.start() }
         carApi = CarApiAdapter(this, store::dispatch).also { it.start() }
@@ -147,6 +159,7 @@ class CollectorService : Service() {
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onDestroy() {
+        fuelPrice.stop()
         scope.cancel()
         energy.stop()
         location.stop()

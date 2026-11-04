@@ -67,8 +67,8 @@ object HabitText {
             add("· 고속: 시속 100km를 넘는 동안 더 든 공기저항")
             add("· 긴 정차: 2분 넘게 선 시간 × " +
                 if (cost.kind == EnergyKind.FUEL) "공회전 연료(시간당 약 0.8L)" else "보조 전력(${p.idleKw}kW, 공조 제외)")
-            add("· 가정값: 무게 ${"%,d".format(p.massKg.toInt())}kg, 구동 효율 ${(p.drivetrainEfficiency * 100).toInt()}%, " +
-                "단가 ${"%,.1f".format(price)}원/$unit${if (cost.prices.assumed) "(가정 단가)" else ""}")
+            add("· 가정값: 무게 ${"%,d".format(p.massKg.toInt())}kg, 구동 효율 ${(p.drivetrainEfficiency * 100).toInt()}%")
+            add("· 단가: ${"%,.1f".format(price)}원/$unit, ${cost.prices.basis(cost.kind)}")
             add("· 실제 소비를 잰 값이 아니라 추정값이다")
         }
     }
