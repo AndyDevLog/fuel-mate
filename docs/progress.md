@@ -91,6 +91,24 @@
 - 에뮬레이터 확인: 정차 화면(주간 모드) 캡처, D로 바꾸자 주행 화면으로 바뀜, 주행 화면 [경유지 추가] → 안내 중 경로에 한강에너지가 경유지로 들어가고 내비가 4,800m 경로로 다시 안내
 - 내비 연동에서 새로 안 것: `isRouting`은 안내 중에도 false라 `naviMode`로 판단, 넣기 전 남은 거리 값이 이상함(docs/pleos/navihelper-sdk.md "에뮬레이터에서 확인한 것"). 안내가 끝나면(도착·안내 없음) "경유 중" 표시를 지운다
 
+## 개발 환경 점검 (2026-11-05, 공식 에뮬레이터 설치 문서 기준)
+
+출처: https://document.pleos.ai/docs/connect/guide/getting-started/application-development/setup-connect-sdk-emulator , 릴리스 노트 https://document.pleos.ai/docs/pleos-only/release-note/emulator-release-note
+
+| 항목 | 문서 | 우리 환경 | 결과 |
+| --- | --- | --- | --- |
+| Pleos Connect Emulator | 2.1.0(릴리스 노트상 최신, 2026-10-19) | 2.1.0 | 같음 |
+| 시스템 이미지 | API 34, Mac은 `crp-arm64-sys-img.xml` 업데이트 사이트 | `system-images;android-34;pleos_car_emulator;arm64-v8a` | 같음. 저장소 목록은 revision 2, 설치본 `source.properties`는 1인데 저장소 zip의 수정일(2026-10-16)이 우리 설치일(10-24)보다 앞서서 같은 파일로 보인다. SDK Manager가 업데이트를 띄우면 4.7GB를 다시 받아야 한다(사용자 판단) |
+| AVD 기기 프로필 | Automotive > Pleos Connect v2.1.0 | `Pleos_Connect_v2_0`(표시 이름 "Pleos Connect v2.1.0"), 2560×1440, 160dpi | 같음 |
+| AVD 설정 | RAM 4GB, Cold boot | RAM 4096MB, `fastboot.forceColdBoot=yes` | 같음 |
+| Android Emulator 패키지 | 최소 24(이미지 의존성) | 37.2.12 | 충족 |
+| Android Studio | 최신 권장 | 2026.2(Homebrew 최신 2026.2.2) | 작은 업데이트 있음, 빌드에는 영향 없음 |
+| minSdk(Android API) | 28 이상(차량 사이버 보안 요건) | 빌드 설정 `minSdk = 28`, 만든 APK 매니페스트 `minSdkVersion=28`·`targetSdkVersion=34`(aapt2로 확인). Pleos SDK AAR은 모두 minSdk 23이라 충돌 없음. 에뮬레이터는 API 34 | 충족 |
+| Gradle | 8.0 이상 | 9.6.1(AGP 9.4.0) | 충족 |
+
+- 2.1.0 변경(릴리스 노트): Virtual Console·폼팩터 테스트 추가, 탑재 SDK 버전 업데이트, LLM SDK·CRN·블루투스 동글 제공 종료. 연료·내비 관련 언급은 없다
+- 문서에 OS·CPU·RAM 사양은 없고 Android Emulator 요구 사항 링크만 있다
+
 ## 할 일
 
 - [x] 뼈대: `:core`(상태 스토어, 급정거 판정, 거리계, 데모 궤적) 테스트 20개, `:app` 수집 서비스 + 상태 화면. 에뮬레이터에서 설치·실행, 데모 경로 재생 확인(2026-11-04)
