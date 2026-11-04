@@ -91,6 +91,46 @@ class StationTest {
     }
 
     @Test
+    fun `경유지로 고른 곳 - 추천이면 덜 아끼는 돈 0, 다른 곳이면 추천과의 이득 차, 후보에 없으면 null`() {
+        val here = GeoPoint(37.40, 127.10)
+        val ahead = GeoMath.destination(here, 0.0, 5_000.0)
+        val near = st("near", 1900.0, 37.401, 127.100)
+        val cheap = st("cheap", 1800.0, 37.42, 127.101)
+        val mid = st("mid", 1850.0, 37.43, 127.1005)
+        val r = assertNotNull(StationRecommender.recommend(listOf(near, cheap, mid), here, ahead, fillL = 45.0))
+        assertEquals("cheap", r.best.station.id)
+
+        val best = assertNotNull(r.chosen("cheap"))
+        assertTrue(best.isBest)
+        assertEquals(0.0, best.lessThanBestWon)
+
+        val other = assertNotNull(r.chosen("mid"))
+        assertFalse(other.isBest)
+        assertEquals(r.best.gainWon - other.option.gainWon, other.lessThanBestWon, 0.001)
+        // 50원 × 45L = 2,250원 차이 근처(우회 차이 몫만큼 조금 다름)
+        assertTrue(other.lessThanBestWon in 2_000.0..2_500.0, "${other.lessThanBestWon}")
+
+        // 가까운 곳(비교 기준)을 고르면 이득 0, 추천보다 추천의 이득만큼 덜 아낀다
+        val base = assertNotNull(r.chosen("near"))
+        assertEquals(0.0, base.option.gainWon, 0.001)
+        assertEquals(r.best.gainWon, base.lessThanBestWon, 0.001)
+
+        assertNull(r.chosen("unknown"))
+    }
+
+    @Test
+    fun `후보가 5곳보다 많아도 화면 목록은 5곳, 경유지 비교는 모든 후보에서 찾는다`() {
+        val here = GeoPoint(37.40, 127.10)
+        val ahead = GeoMath.destination(here, 0.0, 5_000.0)
+        val stations = (0 until 7).map { i -> st("s$i", 1800.0 + i * 10, 37.401 + i * 0.002, 127.100) }
+        val r = assertNotNull(StationRecommender.recommend(stations, here, ahead, fillL = 45.0))
+        assertEquals(7, r.candidates.size)
+        assertEquals(5, r.options.size)
+        assertNotNull(r.chosen("s6"))
+        assertFalse(r.options.any { it.station.id == "s6" })
+    }
+
+    @Test
     fun `앞쪽 지점 - 목적지가 가까우면 목적지, 멀면 그 방향 5km, 없으면 진행 방향 5km`() {
         val here = GeoPoint(37.40, 127.10)
         val nearDest = GeoPoint(37.41, 127.10)

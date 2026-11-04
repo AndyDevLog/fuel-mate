@@ -16,16 +16,33 @@ data class StationOption(val station: Station, val detourM: Double, val gainWon:
  * @property best 추천. 이득이 [StationRecommender.MIN_GAIN_WON]보다 작으면 비교 기준과 같다(가까운 곳에서 넣어도 된다)
  * @property baseline 비교 기준: 우회가 가장 적은 주유소("그냥 가까운 데서 넣었다면")
  * @property fillL 넣을 양: 탱크를 가득 채운다고 본다
+ * @property candidates 우회 한도 안의 모든 후보(이득 큰 순). 화면 목록은 [options]
  */
 data class Recommendation(
     val best: StationOption,
     val baseline: StationOption,
     val fillL: Double,
-    val options: List<StationOption>,
+    val candidates: List<StationOption>,
     val aheadPoint: GeoPoint,
 ) {
     val worthDetour: Boolean get() = best.station.id != baseline.station.id
+
+    /** 화면에 보일 후보(이득 큰 순 5곳) */
+    val options: List<StationOption> get() = candidates.take(5)
+
+    /** 경유지로 고른 주유소를 추천과 비교한다. 지금 후보에 없으면(다시 찾은 뒤 우회 한도 밖 등) null */
+    fun chosen(stationId: String): ChosenOption? {
+        val o = candidates.firstOrNull { it.station.id == stationId } ?: return null
+        val isBest = o.station.id == best.station.id
+        return ChosenOption(o, isBest, if (isBest) 0.0 else max(0.0, best.gainWon - o.gainWon))
+    }
 }
+
+/**
+ * 사용자가 경유지로 고른 주유소.
+ * @property lessThanBestWon 추천([Recommendation.best])을 골랐을 때보다 덜 아끼는 돈. 추천을 골랐거나 고른 곳이 더 나으면 0
+ */
+data class ChosenOption(val option: StationOption, val isBest: Boolean, val lessThanBestWon: Double)
 
 /**
  * "실제 이득" 주유소 추천(docs/pivot-fuel.md 12장 A안). 순수 계산이라 단위 테스트로 확인한다.
@@ -73,7 +90,7 @@ object StationRecommender {
         val baseline = options.first { it.station.id == baseStation.id }
         val top = options.first()
         val best = if (top.gainWon >= MIN_GAIN_WON) top else baseline
-        return Recommendation(best, baseline, fillL, options.take(5), ahead)
+        return Recommendation(best, baseline, fillL, options, ahead)
     }
 
     /** 목적지가 [AHEAD_M]보다 가까우면 목적지, 멀면 목적지 쪽으로 [AHEAD_M], 목적지가 없으면 진행 방향으로 [AHEAD_M] */

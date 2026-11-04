@@ -22,6 +22,7 @@ class ParkedScreen(private val ui: Ui, private val onAddWaypoint: (Station) -> U
     private val recPrice = ui.text(TextSize.BODY, ui.p.text)
     private val recGain = ui.text(TextSize.MAIN, ui.p.gain, bold = true)
     private val recBasis = ui.text(TextSize.SMALL, ui.p.subtext)
+    private val recCompare = ui.text(TextSize.BODY, ui.p.text)
     private val recButton = ui.button("경유지 추가")
     private val waypoint = ui.text(TextSize.BODY, ui.p.text)
     private val othersTitle = ui.text(TextSize.SMALL, ui.p.subtext, bold = true).apply { text = "다른 곳" }
@@ -56,6 +57,7 @@ class ParkedScreen(private val ui: Ui, private val onAddWaypoint: (Station) -> U
             addView(ui.gap(12))
             addView(recGain)
             addView(recBasis)
+            addView(recCompare)
             addView(ui.gap(20))
             addView(recButton, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
             addView(ui.gap(12))
@@ -118,6 +120,7 @@ class ParkedScreen(private val ui: Ui, private val onAddWaypoint: (Station) -> U
         recGain.show(r.gainLine)
         recGain.setTextColor(if (r.gainPositive) ui.p.gain else ui.p.text)
         recBasis.show(r.basisLine)
+        recCompare.show(r.compareLine)
         recButton.visibility = if (r.station != null) View.VISIBLE else View.GONE
         waypoint.show(r.waypointLine)
         othersTitle.visibility = if (r.others.isNotEmpty()) View.VISIBLE else View.GONE
