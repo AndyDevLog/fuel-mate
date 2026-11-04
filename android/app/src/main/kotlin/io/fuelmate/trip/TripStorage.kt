@@ -50,6 +50,7 @@ class TripStorage(context: Context) {
         .put("energyKind", t.energyKind?.name ?: JSONObject.NULL)
         .put("energyUsed", t.energyUsed)
         .put("energyAdded", t.energyAdded)
+        .put("highSpeedExcess", t.highSpeedExcess)
         .put("events", JSONArray().apply { t.events.forEach { put(encode(it, t.startMs)) } })
 
     private fun encode(e: DriveEvent, tripStartMs: Long): JSONObject {
@@ -85,6 +86,8 @@ class TripStorage(context: Context) {
                 ?.let { runCatching { EnergyKind.valueOf(it) }.getOrNull() },
             energyUsed = o.getDouble("energyUsed"),
             energyAdded = o.getDouble("energyAdded"),
+            // 버전 1 첫 기록에는 없던 값
+            highSpeedExcess = o.optDouble("highSpeedExcess", 0.0),
             events = (0 until events.length()).mapNotNull { decodeEvent(events.getJSONObject(it), start) },
         )
     }

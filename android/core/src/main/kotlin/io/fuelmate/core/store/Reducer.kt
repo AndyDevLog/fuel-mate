@@ -72,8 +72,11 @@ private fun reduceSpeed(state: AppState, a: Action.SpeedSample): AppState {
         val dtMs = prev?.let { a.timeMs - it.timeMs }
         if (prev != null && dtMs != null && dtMs in 1..DriveDetector.MAX_GAP_MS) {
             val avg = (prev.speedMps + a.speedMps) / 2.0
+            val ds = avg * dtMs / 1000.0
+            val ref = Trip.HIGH_SPEED_REF_MPS.toDouble()
             next = next.copy(
-                distanceM = next.distanceM + avg * dtMs / 1000.0,
+                distanceM = next.distanceM + ds,
+                highSpeedExcess = if (avg > ref) next.highSpeedExcess + (avg * avg - ref * ref) * ds else next.highSpeedExcess,
                 movingMs = if (avg > DriveDetector.MOVING_MPS) next.movingMs + dtMs else next.movingMs,
             )
         }

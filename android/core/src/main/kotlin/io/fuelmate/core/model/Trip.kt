@@ -7,6 +7,8 @@ package io.fuelmate.core.model
  * @property distanceM 속도를 시간으로 적분한 거리. 위치 출처(데모 궤적·내비)와 상관없이 같은 기준이다
  * @property idleMs 기어가 P가 아닌 채 서 있던 시간(신호 대기 포함)
  * @property energyUsed 이번 운행에서 쓴 에너지(연료 L, 전기 kWh). 회생으로 되찾은 양은 뺀 값
+ * @property highSpeedExcess 시속 100km([HIGH_SPEED_REF_MPS])를 넘는 동안 Σ(v² − v₀²)·Δs(m³/s²).
+ *   × ½·ρ·CdA가 기준 속도보다 더 든 공기저항 에너지다. 차 제원과 무관한 값이라 운행에 쌓아 둔다
  */
 data class Trip(
     val startMs: Long,
@@ -19,11 +21,16 @@ data class Trip(
     val energyKind: EnergyKind? = null,
     val energyUsed: Double = 0.0,
     val energyAdded: Double = 0.0,
+    val highSpeedExcess: Double = 0.0,
     val events: List<DriveEvent> = emptyList(),
 ) {
     val durationMs: Long get() = endMs - startMs
 
     inline fun <reified T : DriveEvent> count(): Int = events.count { it is T }
+
+    companion object {
+        const val HIGH_SPEED_REF_MPS = 100f / 3.6f
+    }
 }
 
 /**

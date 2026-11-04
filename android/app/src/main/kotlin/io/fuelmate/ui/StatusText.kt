@@ -1,5 +1,7 @@
 package io.fuelmate.ui
 
+import io.fuelmate.core.cost.HabitBaseline
+import io.fuelmate.core.cost.HabitCostEstimator
 import io.fuelmate.core.model.AppState
 import io.fuelmate.core.model.DriveEvent
 import io.fuelmate.core.model.EnergyOrigin
@@ -29,6 +31,14 @@ object StatusText {
         appendLine("지금 운행: ${s.trip?.let { tripLine(it) } ?: "없음(P)"}")
         appendLine("지난 운행: ${s.trips.firstOrNull()?.let { tripLine(it) } ?: "없음"}")
         appendLine("저장된 운행: ${s.trips.size}개")
+
+        // 진행 중이면 지금 운행, 아니면 지난 운행의 습관 비용
+        val trip = s.trip ?: s.trips.firstOrNull() ?: return@buildString
+        val cost = HabitCostEstimator.estimate(trip) ?: return@buildString
+        val comparison = HabitBaseline.compare(trip, s.trips)
+        appendLine()
+        appendLine("${if (s.trip != null) "지금" else "지난"} 운행 ${HabitText.summary(cost, comparison)}")
+        HabitText.explanation(cost, comparison).forEach { appendLine("  $it") }
     }
 
     private fun tripLine(t: Trip): String {

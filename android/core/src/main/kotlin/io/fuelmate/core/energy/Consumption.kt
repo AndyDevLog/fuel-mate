@@ -24,10 +24,17 @@ data class VehicleParams(
     val capacity: Double,
 ) {
     companion object {
+        /**
+         * 바퀴 출력 상한. 실차 출력(150~240kW)으로 자르지 않는다: 에뮬레이터는 실차보다 빨리 가속해서(최대 약 5.6m/s²,
+         * 고속에서 300kW 넘음) 실차 값으로 자르면 쓴 에너지가 운동 에너지보다 작게 나오고, 습관 비용(운동 에너지로 계산)이
+         * 운행 소비보다 커지는 모순이 생긴다(2026-11-04 확인). 속도 기록에 맞는 에너지가 나오게 넉넉히 둔다
+         */
+        private const val DEMO_MAX_WHEEL_KW = 500.0
+
         /** 에뮬레이터 차(배터리 77.4kWh, 길이 4,950mm, 폭 2,008mm)에 맞춘 전기 SUV. 탑승자 포함 무게 */
         val DEMO_EV = VehicleParams(
             kind = EnergyKind.ELECTRIC, massKg = 2_100.0, cdA = 0.75, rollingCoef = 0.010,
-            drivetrainEfficiency = 0.88, regenEfficiency = 0.60, idleKw = 0.6, maxWheelKw = 160.0, capacity = 77.4,
+            drivetrainEfficiency = 0.88, regenEfficiency = 0.60, idleKw = 0.6, maxWheelKw = DEMO_MAX_WHEEL_KW, capacity = 77.4,
         )
 
         /**
@@ -37,8 +44,14 @@ data class VehicleParams(
         val DEMO_FUEL = VehicleParams(
             kind = EnergyKind.FUEL, massKg = 1_750.0, cdA = 0.70, rollingCoef = 0.010,
             drivetrainEfficiency = 0.25, regenEfficiency = 0.0, idleKw = 0.8 * Consumption.GASOLINE_KWH_PER_L,
-            maxWheelKw = 140.0, capacity = 60.0,
+            maxWheelKw = DEMO_MAX_WHEEL_KW, capacity = 60.0,
         )
+
+        /** 실제 차 제원을 읽을 수 없어서 종류별 가정값을 쓴다(데모 소비와 습관 비용 추정이 같은 값) */
+        fun assumedFor(kind: EnergyKind) = when (kind) {
+            EnergyKind.ELECTRIC -> DEMO_EV
+            EnergyKind.FUEL -> DEMO_FUEL
+        }
     }
 }
 
@@ -68,7 +81,10 @@ object Consumption {
         val wheelKw = (wheelW / 1000).coerceAtMost(p.maxWheelKw)
         val driveKw = if (wheelKw >= 0) wheelKw / p.drivetrainEfficiency else wheelKw * p.regenEfficiency
         val idle = if (poweredOn || v > 0) p.idleKw else 0.0
-        val kWh = (driveKw + idle) * dtS / 3600
-        return if (p.kind == EnergyKind.FUEL) kWh / GASOLINE_KWH_PER_L else kWh
+        return toSourceAmount(p, (driveKw + idle) * dtS / 3600)
     }
+
+    /** 에너지원에서 나간 kWh → 연료 L(휘발유 발열량) 또는 그대로 kWh */
+    fun toSourceAmount(p: VehicleParams, kWh: Double): Double =
+        if (p.kind == EnergyKind.FUEL) kWh / GASOLINE_KWH_PER_L else kWh
 }
