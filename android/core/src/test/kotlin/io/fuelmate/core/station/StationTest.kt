@@ -129,4 +129,13 @@ class StationTest {
         assertEquals(45.0, r.fillL)
         assertEquals("cheap", r.best.station.id)
     }
+
+    @Test
+    fun `실제 우회 - 내비 값이 말이 되면 쓰고, 음수·20km 초과·넣기 전 거리 없음이면 모른다`() {
+        assertEquals(1_500.0, WaypointState.detourOrNull(3_100, 4_600))
+        // 에뮬레이터에서 본 값: 넣기 전 10000m → 넣은 뒤 4800m
+        assertNull(WaypointState.detourOrNull(10_000, 4_800))
+        assertNull(WaypointState.detourOrNull(null, 4_800))
+        assertNull(WaypointState.detourOrNull(1_000, 30_000))
+    }
 }

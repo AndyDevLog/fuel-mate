@@ -142,6 +142,7 @@ Road Sensor → "내 차 주유비 매니저"로 바꿀 수 있는지 확인한 
 6. `RequestWaypointInfo`의 `poiId`·`poiProvider` 체계(내비 POI와 연결하는 방법), 추가한 경유지의 `WaypointInfo` 위경도가 0.0으로 오는 이유
 7. `remainDestinationChargingInt` 단위(Wh인지)와 내연기관 차에서의 의미
 8. 에뮬레이터에서 배터리 SoC와 잔량(Wh)이 따로 움직이는데, 실차에서는 둘이 같은 출처인지
+9. 안내 중인데 `RouteStateInfo.isRouting`이 false로 오는 이유(의미가 "경로 탐색 중"인지), `DestinationInfo.remainDistance`가 10000으로 오는 이유와 단위. 경유지를 넣기 전 목적지까지 남은 거리를 얻는 올바른 방법
 
 ## 12. 결정이 필요한 것 (사용자에게)
 

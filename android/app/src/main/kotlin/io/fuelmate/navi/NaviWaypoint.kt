@@ -1,9 +1,12 @@
 package io.fuelmate.navi
 
 import ai.pleos.playground.navi.constants.NaviErrorCode
+import ai.pleos.playground.navi.constants.NaviMode
 import ai.pleos.playground.navi.constants.RouteOption
 import ai.pleos.playground.navi.constants.WaypointCmdType
 import ai.pleos.playground.navi.constants.WaypointIndex
+import ai.pleos.playground.navi.data.DestinationArrivedInfo
+import ai.pleos.playground.navi.data.DestinationInfo
 import ai.pleos.playground.navi.data.DrivingInfo
 import ai.pleos.playground.navi.data.RequestWaypointInfo
 import ai.pleos.playground.navi.data.RouteInfo
@@ -36,22 +39,53 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
     /** 가장 최근 목적지까지 남은 거리(m). 경유지를 넣기 전 값과 비교한다 */
     private var remainM: Int? = null
     private var pending: Pending? = null
+    /** 화면에 "경유 중/안내 중"을 띄웠나 */
+    private var shown = false
 
     private class Pending(val station: Station, val beforeM: Int?)
 
     private val listener = object : NaviHelperEventListener {
         override fun onRouteStateInfo(routeStateInfo: RouteStateInfo) {
-            routing = routeStateInfo.isRouting
-            if (!routing) remainM = null
+            // isRouting은 안내 중에도 false로 온다(2026-11-05 에뮬레이터: 주유소로 안내 중인데 isRouting=false,
+            // naviMode=ROUTE_GUIDING). 그래서 안내 중인지는 naviMode로 본다. SAFE_GUIDING은 경로 없는 안전운전 모드다
+            val now = routeStateInfo.naviMode == NaviMode.ROUTE_GUIDING || routeStateInfo.naviMode == NaviMode.SIMULATION_GUIDING
+            if (now != routing) Log.i("내비 안내 상태: ${if (now) "안내 중" else "안내 없음"}(${routeStateInfo.naviMode})")
+            routing = now
+            // 경유지를 넣는 동안 잠깐 SAFE_GUIDING이 된다. 그 사이에는 넣기 전 거리를 지우지 않는다
+            if (!now && pending == null) {
+                remainM = null
+                // 도착·취소로 안내가 끝났으면 화면의 "경유 중/안내 중"을 지운다
+                if (shown && pending == null) {
+                    shown = false
+                    dispatch(Action.WaypointSet(null))
+                }
+            }
         }
 
         override fun onDrivingInfo(drivingInfo: DrivingInfo) {
-            remainM = drivingInfo.destination.distance
+            val d = drivingInfo.destination.distance
+            if (d > 0 && pending == null) remainM = d
+        }
+
+        // 넣기 전 목적지까지 남은 거리. onDrivingInfo는 경유지를 넣기 전에 오지 않았다(2026-11-05) → 안내 중이면 주기적으로 묻는다.
+        // DestinationInfo에는 좌표가 들어 있어 남은 거리만 쓰고 로그에 남기지 않는다
+        override fun onDestinationInfo(destinationInfo: DestinationInfo) {
+            val d = destinationInfo.remainDistance
+            if (routing && d > 0 && pending == null) remainM = d
         }
 
         override fun onRouteStarted(routeStartInfo: RouteStartInfo) {
+            Log.i("내비 경로 시작: ${routeStartInfo.distance}m, ${routeStartInfo.duration}초")
             routing = true
             if (remainM == null) remainM = routeStartInfo.distance
+        }
+
+        override fun onDestinationArrived(destinationArrivedInfo: DestinationArrivedInfo) {
+            Log.i("내비 목적지 도착")
+            if (shown) {
+                shown = false
+                dispatch(Action.WaypointSet(null))
+            }
         }
 
         override fun onRouteCancelled() {
@@ -64,9 +98,11 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
             if (waypointChangedInfo.cmdType != WaypointCmdType.ADD) return
             pending = null
             val after = waypointChangedInfo.routeStartInfo.distance
-            val detour = p.beforeM?.let { (after - it).toDouble() }
-            Log.i("경유지 추가됨: ${p.station.name}, 목적지 거리 ${p.beforeM ?: "?"} → ${after}m, 우회 ${detour ?: "?"}m")
-            dispatch(Action.WaypointSet(WaypointState(p.station.id, p.station.name, asDestination = false, detourM = detour)))
+            // 에뮬레이터에서 넣기 전 남은 거리(DestinationInfo.remainDistance)가 10000으로 와서 우회가 음수가 된 적이 있다(2026-11-05).
+            // 말이 안 되는 값이면 실제 우회를 모른다고 표시한다
+            val detour = WaypointState.detourOrNull(p.beforeM, after)
+            Log.i("경유지 추가됨: ${p.station.name}, 목적지 거리 ${p.beforeM ?: "?"} → ${after}m, 실제 우회 ${detour ?: "확인 못 함"}")
+            dispatch(Action.WaypointSet(WaypointState(p.station.id, p.station.name, asDestination = false, detourM = detour, added = true)))
         }
 
         override fun onError(errorCode: NaviErrorCode) = Log.w("내비 오류 $errorCode")
@@ -75,6 +111,7 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
     private val poll = object : Runnable {
         override fun run() {
             navi.getRouteStateInfo()
+            if (routing) navi.getDestinationInfo()
             main.postDelayed(this, POLL_MS)
         }
     }
@@ -101,15 +138,18 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
             navi.addWaypoint(RequestWaypointInfo(p.lat, p.lon, station.name, WaypointIndex.FIRST, "", "", "", ""))
             Log.i("경유지 추가 요청: ${station.name}")
             dispatch(Action.WaypointSet(WaypointState(station.id, station.name, asDestination = false)))
+            shown = true
         } else {
             pending = null
             navi.requestRoute(RouteInfo(p.lat, p.lon, null, null, station.name, "", "", "", RouteOption.RECOMMENDED, "", false))
             Log.i("안내 중이 아니라 목적지로 안내 요청: ${station.name}")
             dispatch(Action.WaypointSet(WaypointState(station.id, station.name, asDestination = true)))
+            shown = true
         }
     }
 
     private companion object {
-        const val POLL_MS = 10_000L
+        /** 넣기 전 거리가 이만큼 늦을 수 있다(시속 100km면 약 140m 덜 센다) */
+        const val POLL_MS = 5_000L
     }
 }

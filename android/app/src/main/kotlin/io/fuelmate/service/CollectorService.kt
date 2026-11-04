@@ -25,6 +25,7 @@ import io.fuelmate.location.LocationMode
 import io.fuelmate.location.LocationSink
 import io.fuelmate.location.LocationSource
 import io.fuelmate.location.NaviHelperSource
+import io.fuelmate.core.station.Station
 import io.fuelmate.core.station.StationRecommender
 import io.fuelmate.navi.NaviWaypoint
 import io.fuelmate.price.ChargeTierSetting
@@ -79,6 +80,8 @@ class CollectorService : Service() {
             val r = StationRecommender.recommend(store.state.value)
             if (r == null) Log.w("추천이 없어 경유지를 넣지 않음") else naviWaypoint.add(r.best.station)
         }
+        /** 화면에서 고른 주유소를 내비 경유지로 넣는다 */
+        fun addWaypoint(station: Station) = naviWaypoint.add(station)
         fun setChargeTier(tier: ChargeTier) {
             ChargeTierSetting.save(this@CollectorService, tier)
             store.dispatch(Action.ChargeTierChanged(tier))

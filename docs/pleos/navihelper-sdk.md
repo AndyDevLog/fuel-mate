@@ -108,6 +108,15 @@ TBTInfo(type: TurnType, distance: Double, description: String)
 CautionPoint(id: String, type: CautionPointType, remainDistance: Int)
 ```
 
+## 에뮬레이터에서 확인한 것 (2026-11-05, Fuel Mate `app/navi/NaviWaypoint.kt`)
+
+- ⚠️ `RouteStateInfo.isRouting`은 **안내 중에도 false**로 왔다(주유소로 안내 중, `naviMode=ROUTE_GUIDING`). 안내 중인지는 `naviMode`(`NOT_WORKING`, `SAFE_GUIDING`(경로 없는 안전운전), `ROUTE_GUIDING`, `SIMULATION_GUIDING`)로 본다
+- 경유지를 넣으면 잠깐 `SAFE_GUIDING`이 됐다가 다시 `ROUTE_GUIDING`이 된다. 내비 앱이 앞으로 나온다
+- 경유지를 넣기 전 남은 거리: `onDrivingInfo`는 넣기 전에는 오지 않았다. `getDestinationInfo()` → `DestinationInfo.remainDistance`는 **10000**으로 왔는데, 경유지를 넣은 뒤 `WaypointChangedInfo.routeStartInfo.distance`는 4800이라 실제 거리로 보기 어렵다(확인 필요, docs/pivot-fuel.md 11장 9번). 앱은 말이 안 되는 우회 값(음수·20km 초과)이면 "실제 우회 거리는 확인하지 못함"으로 표시한다
+- 이미 경유지로 들어간 곳을 다시 넣으면 `onWaypointChanged`가 오지 않았다
+- 목적지 도착 콜백은 `onDestinationArrived(DestinationArrivedInfo)`, 경유지 도착은 `onWayPointArrived(WaypointArrivedInfo)`다(javap. 위 표의 이름에는 인자가 빠져 있다)
+- `requestRoute(RouteInfo(...))`(주유소 좌표·이름만, POI ID 없음)로 안내가 시작되고 음성 안내가 나온다
+
 ## 이 프로젝트에 중요한 점
 
 - ⚠️ **경로 선형(좌표 목록)을 주는 API가 없다.** 데이터 클래스 32개를 다 봤지만 polyline 형태의 데이터는 없다. 경로 위 위치는 목적지·경유지 좌표, `ratioOnRoute`, 혼잡 구간의 `offset`/`distance`(경로 시작점 기준 거리로 보임) 정도로만 표현된다.

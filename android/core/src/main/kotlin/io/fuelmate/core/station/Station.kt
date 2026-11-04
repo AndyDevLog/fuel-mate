@@ -65,10 +65,23 @@ object OpinetAround {
 /**
  * 내비에 넣은 주유소. [detourM]은 내비가 다시 계산한 목적지 거리 차이(실제 우회, m).
  * 경로가 없어서 주유소를 목적지로 안내했으면 [asDestination]이 true이고 우회 거리는 없다.
+ * [added]는 내비가 경유지 추가를 알려 왔는지. 추가됐는데 [detourM]이 null이면 내비 값이 맞지 않아 실제 우회를 모르는 것이다.
  */
 data class WaypointState(
     val stationId: String,
     val stationName: String,
     val asDestination: Boolean,
     val detourM: Double? = null,
-)
+    val added: Boolean = false,
+) {
+    companion object {
+        /** 내비가 준 넣기 전·후 거리로 실제 우회를 구한다. 말이 안 되는 값(음수, 20km 초과, 넣기 전 거리 없음)이면 null */
+        fun detourOrNull(beforeM: Int?, afterM: Int): Double? {
+            if (beforeM == null || beforeM <= 0 || afterM <= 0) return null
+            val d = (afterM - beforeM).toDouble()
+            return d.takeIf { it in 0.0..MAX_PLAUSIBLE_DETOUR_M }
+        }
+
+        const val MAX_PLAUSIBLE_DETOUR_M = 20_000.0
+    }
+}

@@ -8,15 +8,18 @@ import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.IBinder
+import android.view.View
 import android.view.Window
+import android.widget.FrameLayout
+import android.widget.ScrollView
 import android.widget.TextView
 import io.fuelmate.Log
 import io.fuelmate.core.cost.ChargeTier
 import io.fuelmate.core.model.AppState
+import io.fuelmate.core.station.Station
 import io.fuelmate.energy.EnergyMode
 import io.fuelmate.service.CollectorService
 import io.fuelmate.vehicle.CarApiAdapter
@@ -27,14 +30,20 @@ import kotlinx.coroutines.launch
 
 /**
  * 화면은 수집 서비스의 상태를 구독해서 그리기만 한다.
- * 뼈대 단계라 상태 요약 한 장만 보여 준다. 기능 화면은 docs/progress.md 순서대로 붙인다.
+ * 주행/정차는 CarUxRestrictions만 따른다(state.drive.restricted): 주행 중이면 [DrivingScreen], 정차 중이면 [ParkedScreen].
+ * 상태를 [ScreenModel]로 바꾼 값이 같으면 다시 그리지 않는다. 개발용 상태 글자는 `--es screen status`로만 연다.
  */
 class MainActivity : Activity() {
 
     private val scope = MainScope()
     private var collect: Job? = null
     private var binder: CollectorService.LocalBinder? = null
-    private lateinit var text: TextView
+    private lateinit var frame: FrameLayout
+    private lateinit var parked: ParkedScreen
+    private lateinit var driving: DrivingScreen
+    private lateinit var status: TextView
+    private var showStatus = false
+    private var lastModel: ScreenModel? = null
     private var askedPermissions = false
     /** 실행 인텐트로 받은 에너지 공급원(개발·시연용). 서비스에 연결되면 넘긴다 */
     private var pendingEnergyMode: EnergyMode? = null
@@ -58,13 +67,21 @@ class MainActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
-        text = TextView(this).apply {
-            textSize = 28f
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.rgb(16, 20, 28))
-            setPadding(64, 64, 64, 64)
+        val ui = Ui(this, Palette.of(this))
+        val add: (Station) -> Unit = { s -> binder?.addWaypoint(s) }
+        parked = ParkedScreen(ui, add)
+        driving = DrivingScreen(ui, add)
+        status = ui.text(TextSize.SMALL).apply {
+            setBackgroundColor(ui.p.background)
+            setPadding(ui.dp(32), ui.dp(32), ui.dp(32), ui.dp(32))
         }
-        setContentView(text)
+        frame = FrameLayout(this).apply {
+            setBackgroundColor(ui.p.background)
+            addView(parked.view)
+            addView(driving.view)
+            addView(ScrollView(this@MainActivity).apply { addView(status) })
+        }
+        setContentView(frame)
         readModes(intent)
 
         val intent = Intent(this, CollectorService::class.java)
@@ -85,6 +102,10 @@ class MainActivity : Activity() {
                 ?: null.also { Log.w("모르는 에너지 공급원: $name") }
         }
         if (intent?.getStringExtra(EXTRA_WAYPOINT) == "best") pendingAddWaypoint = true
+        when (intent?.getStringExtra(EXTRA_SCREEN)) {
+            "status" -> showStatus = true
+            "app" -> showStatus = false
+        }
         intent?.getStringExtra(EXTRA_CHARGE_TIER)?.let { name ->
             pendingChargeTier = runCatching { ChargeTier.valueOf(name) }.getOrNull()
                 ?: null.also { Log.w("모르는 충전요금 단계: $name") }
@@ -122,7 +143,21 @@ class MainActivity : Activity() {
     }
 
     private fun render(state: AppState) {
-        text.text = StatusText.of(state)
+        if (showStatus) status.text = StatusText.of(state)
+        val model = ScreenModel.of(state)
+        if (model != lastModel) {
+            lastModel = model
+            when (model) {
+                is ScreenModel.Driving -> driving.render(model)
+                is ScreenModel.Parked -> parked.render(model)
+            }
+        }
+        // 보이는 화면 하나만 남긴다
+        val which = if (showStatus) 2 else if (model is ScreenModel.Driving) 1 else 0
+        for (i in 0 until frame.childCount) {
+            val v = if (i == which) View.VISIBLE else View.GONE
+            if (frame.getChildAt(i).visibility != v) frame.getChildAt(i).visibility = v
+        }
 
         // 권한은 정차 중에만 한 번 묻는다(주행 중에는 설정 화면이 제한된다).
         // 속도: 급가속·급정거 판정. 알림: 수집 서비스 상시 알림(API 33부터 런타임 권한)
@@ -146,5 +181,7 @@ class MainActivity : Activity() {
         const val EXTRA_CHARGE_TIER = "chargeTier"
         /** `--es waypoint best`: 지금 추천을 내비 경유지로 넣는다(화면 버튼이 생기기 전 개발·시연용) */
         const val EXTRA_WAYPOINT = "waypoint"
+        /** `--es screen status|app`: 개발용 상태 글자 / 앱 화면 */
+        const val EXTRA_SCREEN = "screen"
     }
 }
