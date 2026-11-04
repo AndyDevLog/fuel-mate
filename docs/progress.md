@@ -1,6 +1,6 @@
 # 진행 기록
 
-공모전 일정 기준으로 Fuel Mate(가칭) 진행 상황을 적는다. Pleos SDK 사실과 미해결 질문은 [pleos/](pleos/README.md), 주제를 정한 근거는 [pivot-fuel.md](pivot-fuel.md)에 있다.
+공모전 일정 기준으로 Fuel Mate 진행 상황을 적는다. Pleos SDK 사실과 미해결 질문은 [pleos/](pleos/README.md), 주제를 정한 근거는 [pivot-fuel.md](pivot-fuel.md)에 있다.
 
 ## 일정
 
@@ -109,6 +109,19 @@
 - 2.1.0 변경(릴리스 노트): Virtual Console·폼팩터 테스트 추가, 탑재 SDK 버전 업데이트, LLM SDK·CRN·블루투스 동글 제공 종료. 연료·내비 관련 언급은 없다
 - 문서에 OS·CPU·RAM 사양은 없고 Android Emulator 요구 사항 링크만 있다
 
+## 작업 환경: 두 번째 맥 (2026-11-05)
+
+- 두 대에서 작업한다. **첫 번째 맥**(Android Studio + AVD `Pleos_Connect_v2.1.0`)과 **두 번째 맥**(M1 Pro 16GB, Android Studio 없이 명령줄로 작업)
+- 두 번째 맥 환경: JDK는 Temurin 21(Android Studio JBR 아님), Android SDK는 명령줄 도구로 받음(platform-tools, platforms;android-34, build-tools;36.0.0). `JAVA_HOME`·`ANDROID_HOME`은 셸 설정에 둔다
+- 두 번째 맥 에뮬레이터(2026-11-05): sdkmanager 사용자 저장소(`~/.android/repositories.cfg`)에 Pleos 이미지 XML을 등록하고 `system-images;android-34;pleos_car_emulator;arm64-v8a`를 받음 → `avdmanager create avd -n Pleos_Connect_v2.1.0 -d Pleos_Connect_v2_0`, `hw.ramSize=4096`, `fastboot.forceColdBoot=yes`. 부팅 약 30초, 디버그 APK 설치·실행(데모 휘발유 25%, 오피넷 단가 수신)과 Virtual Console 열기 확인
+- 메모리 16GB라 에뮬레이터와 Gradle 빌드를 함께 돌리면 느릴 수 있다. 기본 검증은 `./gradlew :core:test`와 `./gradlew :app:assembleDebug`로 하고, 에뮬레이터가 꼭 필요한데 두 번째 맥에서 못 한 확인은 아래 "다른 맥에서 확인 필요"에 남긴다(확인한 뒤 지우고 결과는 해당 기능 절에 옮긴다)
+- 처음 맞춘 뒤 확인(2026-11-05): `:core:test` 53개 통과, `:app:assembleDebug` 성공, 오피넷 키가 `BuildConfig`에 들어감. 첫 번째 맥 작업(주유소 추천·화면·기획서 초안)을 받은 뒤 다시 돌려 `:core:test` 65개 통과, `:app:assembleDebug` 성공
+- 두 번째 맥 클론에는 로컬 태그 `archive/road-sensor`와 저장소 밖 백업이 없다(첫 번째 맥에만 있음)
+
+### 다른 맥에서 확인 필요
+
+- (아직 없음)
+
 ## 할 일
 
 - [x] 뼈대: `:core`(상태 스토어, 급정거 판정, 거리계, 데모 궤적) 테스트 20개, `:app` 수집 서비스 + 상태 화면. 에뮬레이터에서 설치·실행, 데모 경로 재생 확인(2026-11-04)
@@ -123,6 +136,8 @@
 - [x] 안내 중인 경로에 경유지 넣기(2026-11-05): 들어가지만 넣기 전 남은 거리가 이상하게 와서 실제 우회 거리는 아직 못 받음(Pleos 문의 9번)
 - [x] 화면(2026-11-05): 아래 "화면" 참고
 - [ ] 야간 모드 화면 확인(에뮬레이터 야간 모드 전환은 사용자), `LIMIT_CONTENT` 규제 확인(에뮬레이터 D에서는 켜지지 않음)
-- [x] 기획서 초안(2026-11-05): `docs/proposal.md`(새 주제 8문항) → `fill_form.py`로 공식 양식에 채움(캡처 4장: 정차·주행·경유지 추가 후 내비·운행 요약). 남은 것: 앱명 확정, `[확인 필요]`(GitHub 링크·심사 계정, 시연 영상 링크, Pleos 문의 회신, 진행 상황 갱신), Word 문서 검사
+- [x] 기획서 초안(2026-11-05): `docs/proposal.md`(새 주제 8문항) → `fill_form.py`로 공식 양식에 채움(캡처 4장: 정차·주행·경유지 추가 후 내비·운행 요약). 남은 것: `[확인 필요]`(GitHub 링크·심사 계정, 시연 영상 링크, 진행 상황 갱신), Word 양식 다시 채우기와 문서 검사(첫 번째 맥)
+  - 2026-11-05 고친 것: 앱명 "Fuel Mate"로 확정(README·CLAUDE.md·progress.md에서도 가칭 뺌). Pleos 문의 없이 제출하므로 5장의 `[확인 필요: 문의 회신]`을 "실차 연료 API는 미확인, 어댑터로 바꿀 수 있게 구현됨"으로 바꿈. 시나리오 A·2장·6장의 화면 문구를 실제 정차 화면(우회 약 3.7km, 약 1,680원 이득)에 맞춤
+  - 2장 가격 차 근거(2026-11-05 04:07 오피넷 `aroundAll.do`, 반경 5km, 휘발유, KATEC은 `core/geo/Katec.kt`로 변환): 시흥동(데모 궤적 시작점 37.41272, 127.094681) 27곳, 최저 1,804 · 최고 1,927원(123원 차, 45L 약 5,535원). 서울시청(37.566535, 126.977969) 52곳, 최저 1,830 · 최고 2,488원(658원 차). 초안의 "시흥동 40곳"은 27곳으로 고침
 - [ ] 시연 영상, release APK(`apk/`), README
-- [ ] Pleos 문의([pivot-fuel.md](pivot-fuel.md) 11장)
+- [ ] Pleos 문의([pivot-fuel.md](pivot-fuel.md) 11장): 접수 전에는 보내지 않고 지금 상태로 제출하기로 함(2026-11-05, 사용자 결정). 2차 PT 전에 필요하면 다시 정한다
