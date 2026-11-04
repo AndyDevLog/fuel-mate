@@ -11,6 +11,8 @@
 
     <!-- Pleos NaviHelper 위치·목적지 조회 -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
+    <!-- Pleos NaviHelper 경유지 추가·경로 요청(normal, docs/pleos/navihelper-sdk.md) -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
 
     <!-- AAOS: 속도(dangerous, 런타임 허용 필요)·기어 -->
     <uses-permission android:name="android.car.permission.CAR_SPEED" />

@@ -61,5 +61,6 @@ adb shell am start --user 10 -n io.fuelmate/.ui.MainActivity --es chargeTier FAS
 | Pleos Vehicle SDK, NaviHelper SDK | 차량 신호, 위치·경로 | Pleos Playground 이용 조건 |
 | kotlinx.coroutines | 상태 스토어 | Apache License 2.0 |
 | 오피넷 "주유소 전국 평균가격(현재)" 오픈 API(한국석유공사, [공공데이터포털 15150932](https://www.data.go.kr/data/15150932/openapi.do)) | 휘발유 단가(하루 한 번, 위치를 보내지 않음) | 공공데이터포털 표기 "이용허락범위 제한 없음". 오피넷 저작권정책은 수익 목적 이용 시 공사와 사전 협의, 출처 표기(한국석유공사) |
+| 오피넷 "반경 내 주유소" 오픈 API(한국석유공사) | 주유소별 휘발유 가격·위치(검색 중심 좌표만 보냄) | 위와 같음 |
 | 기후에너지환경부 공공 전기차 충전요금(2026-08-01 시행 5단계) | 전기 단가(사용자가 단계 선택) | 보도 기준 값, 공식 고시 원문 확인 필요 |
 | OpenStreetMap, OSRM | 데모 경로(`android/app/src/main/assets/tracks/`) | © OpenStreetMap contributors, ODbL |

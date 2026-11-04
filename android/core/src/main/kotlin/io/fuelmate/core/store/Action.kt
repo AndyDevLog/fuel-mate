@@ -8,6 +8,8 @@ import io.fuelmate.core.model.Gear
 import io.fuelmate.core.model.GeoFix
 import io.fuelmate.core.model.GeoPoint
 import io.fuelmate.core.model.Trip
+import io.fuelmate.core.station.StationSearch
+import io.fuelmate.core.station.WaypointState
 
 /** 스토어에 들어오는 모든 변화. 어댑터는 SDK 값을 이 타입으로 바꿔서 넣기만 한다. */
 sealed interface Action {
@@ -37,6 +39,10 @@ sealed interface Action {
     // 단가 (오피넷 평균가는 서비스가 하루 한 번 받는다, 충전요금 단계는 사용자 설정)
     data class FuelPriceUpdated(val prices: AvgFuelPrices) : Action
     data class ChargeTierChanged(val tier: ChargeTier) : Action
+
+    // 주유소 추천 (오피넷 반경 검색, 내비 경유지)
+    data class StationsFound(val search: StationSearch) : Action
+    data class WaypointSet(val waypoint: WaypointState?) : Action
 
     // 운행 기록 (앱이 차 안 저장소에서 읽어 되돌린다)
     data class TripsRestored(val trips: List<Trip>) : Action

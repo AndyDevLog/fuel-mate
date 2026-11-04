@@ -25,7 +25,10 @@ import io.fuelmate.location.LocationMode
 import io.fuelmate.location.LocationSink
 import io.fuelmate.location.LocationSource
 import io.fuelmate.location.NaviHelperSource
+import io.fuelmate.core.station.StationRecommender
+import io.fuelmate.navi.NaviWaypoint
 import io.fuelmate.price.ChargeTierSetting
+import io.fuelmate.station.StationSearchSource
 import io.fuelmate.price.FuelPriceSource
 import io.fuelmate.trip.TripStorage
 import io.fuelmate.ui.MainActivity
@@ -57,6 +60,8 @@ class CollectorService : Service() {
     private lateinit var energyMode: EnergyMode
     private lateinit var tripStorage: TripStorage
     private lateinit var fuelPrice: FuelPriceSource
+    private lateinit var stationSearch: StationSearchSource
+    private lateinit var naviWaypoint: NaviWaypoint
     private val scope = MainScope()
 
     inner class LocalBinder : Binder() {
@@ -69,6 +74,11 @@ class CollectorService : Service() {
         }
         fun setLocationMode(mode: LocationMode) = this@CollectorService.switchLocation(mode)
         fun setEnergyMode(mode: EnergyMode) = this@CollectorService.switchEnergy(mode)
+        /** 지금 추천(없으면 아무것도 안 함)을 내비 경유지로 넣는다. 주행 중에도 한 번 누르면 끝나는 동작이다 */
+        fun addRecommendedWaypoint() {
+            val r = StationRecommender.recommend(store.state.value)
+            if (r == null) Log.w("추천이 없어 경유지를 넣지 않음") else naviWaypoint.add(r.best.station)
+        }
         fun setChargeTier(tier: ChargeTier) {
             ChargeTierSetting.save(this@CollectorService, tier)
             store.dispatch(Action.ChargeTierChanged(tier))
@@ -97,6 +107,9 @@ class CollectorService : Service() {
         // 단가: 충전요금 단계(설정)와 오피넷 평균 유가(캐시 → 하루 한 번 갱신)
         store.dispatch(Action.ChargeTierChanged(ChargeTierSetting.load(this)))
         fuelPrice = FuelPriceSource(this, scope, store::dispatch).also { it.start() }
+        // 주유소 추천: 반경 검색(연료 50% 이하일 때) + 내비 경유지
+        stationSearch = StationSearchSource(scope, { store.state.value }, store::dispatch).also { it.start() }
+        naviWaypoint = NaviWaypoint(this, store::dispatch).also { it.start() }
 
         vehicle = PleosVehicleAdapter(this, store::dispatch).also { it.start() }
         carApi = CarApiAdapter(this, store::dispatch).also { it.start() }
@@ -160,6 +173,8 @@ class CollectorService : Service() {
 
     override fun onDestroy() {
         fuelPrice.stop()
+        stationSearch.stop()
+        naviWaypoint.stop()
         scope.cancel()
         energy.stop()
         location.stop()

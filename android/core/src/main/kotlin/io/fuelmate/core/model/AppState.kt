@@ -2,6 +2,8 @@ package io.fuelmate.core.model
 
 import io.fuelmate.core.cost.UnitPrices
 import io.fuelmate.core.detect.DriveTracker
+import io.fuelmate.core.station.StationSearch
+import io.fuelmate.core.station.WaypointState
 
 /**
  * 앱 전체 상태. 화면이 보여줄 것은 이 값 하나로 결정된다.
@@ -26,6 +28,10 @@ data class AppState(
     val trips: List<Trip> = emptyList(),
     /** 에너지 단가. 오피넷 평균가를 받기 전에는 가정값 */
     val prices: UnitPrices = UnitPrices.ASSUMED,
+    /** 마지막 주유소 검색 결과. 추천은 이 값과 지금 위치로 계산한다(StationRecommender) */
+    val stationSearch: StationSearch? = null,
+    /** 내비에 넣은 주유소와 실제 우회 거리 */
+    val waypoint: WaypointState? = null,
     /** 운전 사건 판정용 내부 상태. 화면은 쓰지 않는다 */
     val driveTracker: DriveTracker = DriveTracker(),
 ) {

@@ -39,6 +39,7 @@ class MainActivity : Activity() {
     /** 실행 인텐트로 받은 에너지 공급원(개발·시연용). 서비스에 연결되면 넘긴다 */
     private var pendingEnergyMode: EnergyMode? = null
     private var pendingChargeTier: ChargeTier? = null
+    private var pendingAddWaypoint = false
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -83,6 +84,7 @@ class MainActivity : Activity() {
             pendingEnergyMode = runCatching { EnergyMode.valueOf(name) }.getOrNull()
                 ?: null.also { Log.w("모르는 에너지 공급원: $name") }
         }
+        if (intent?.getStringExtra(EXTRA_WAYPOINT) == "best") pendingAddWaypoint = true
         intent?.getStringExtra(EXTRA_CHARGE_TIER)?.let { name ->
             pendingChargeTier = runCatching { ChargeTier.valueOf(name) }.getOrNull()
                 ?: null.also { Log.w("모르는 충전요금 단계: $name") }
@@ -95,6 +97,8 @@ class MainActivity : Activity() {
         pendingEnergyMode = null
         pendingChargeTier?.let { b.setChargeTier(it) }
         pendingChargeTier = null
+        if (pendingAddWaypoint) b.addRecommendedWaypoint()
+        pendingAddWaypoint = false
     }
 
     override fun onDestroy() {
@@ -140,5 +144,7 @@ class MainActivity : Activity() {
         const val EXTRA_ENERGY = "energy"
         /** `--es chargeTier SLOW|FAST_30|FAST_50|FAST_100|ULTRA` */
         const val EXTRA_CHARGE_TIER = "chargeTier"
+        /** `--es waypoint best`: 지금 추천을 내비 경유지로 넣는다(화면 버튼이 생기기 전 개발·시연용) */
+        const val EXTRA_WAYPOINT = "waypoint"
     }
 }

@@ -34,6 +34,9 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
         ?: state
     is Action.ChargeTierChanged -> state.copy(prices = state.prices.copy(chargeTier = action.tier))
 
+    is Action.StationsFound -> state.copy(stationSearch = action.search)
+    is Action.WaypointSet -> state.copy(waypoint = action.waypoint)
+
     is Action.TripsRestored -> state.copy(trips = action.trips.take(AppState.MAX_TRIPS))
 
     is Action.LocationFixed -> state.copy(

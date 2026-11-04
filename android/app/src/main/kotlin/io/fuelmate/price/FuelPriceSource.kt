@@ -6,6 +6,7 @@ import io.fuelmate.Log
 import io.fuelmate.core.cost.AvgFuelPrices
 import io.fuelmate.core.cost.OpinetAvgPrice
 import io.fuelmate.core.store.Action
+import io.fuelmate.net.HttpGet
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -13,8 +14,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.net.HttpURLConnection
-import java.net.URL
 
 /**
  * 오피넷 전국 주유소 평균가격을 하루 한 번 받는다(수집 서비스 안에서만 돈다).
@@ -56,7 +55,7 @@ class FuelPriceSource(
 
     /** @return 받아서 넣었으면 true */
     private suspend fun fetchOnce(): Boolean {
-        val xml = withContext(Dispatchers.IO) { runCatching { get(OpinetAvgPrice.requestUrl(BuildConfig.OPINET_CERT_KEY)) } }
+        val xml = withContext(Dispatchers.IO) { runCatching { HttpGet.text(OpinetAvgPrice.requestUrl(BuildConfig.OPINET_CERT_KEY)) } }
             .onFailure { Log.w("유가 요청 실패: ${it.javaClass.simpleName}") }
             .getOrNull() ?: return false
         val prices = OpinetAvgPrice.parse(xml)
@@ -69,19 +68,6 @@ class FuelPriceSource(
         Log.i("유가 받음: 휘발유 ${prices.gasoline}원/L, 경유 ${prices.diesel}, 부탄 ${prices.autoLpg} (${prices.tradeDate})")
         dispatch(Action.FuelPriceUpdated(prices))
         return true
-    }
-
-    private fun get(url: String): String {
-        val c = URL(url).openConnection() as HttpURLConnection
-        try {
-            c.connectTimeout = TIMEOUT_MS
-            c.readTimeout = TIMEOUT_MS
-            c.requestMethod = "GET"
-            if (c.responseCode != 200) error("HTTP ${c.responseCode}")
-            return c.inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-        } finally {
-            c.disconnect()
-        }
     }
 
     private fun cached(): AvgFuelPrices? {
@@ -114,6 +100,5 @@ class FuelPriceSource(
         const val FRESH_MS = 12 * 60 * 60 * 1000L
         const val CHECK_MS = 60 * 60 * 1000L
         const val RETRY_MS = 15 * 60 * 1000L
-        const val TIMEOUT_MS = 10_000
     }
 }

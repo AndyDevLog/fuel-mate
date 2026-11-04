@@ -28,6 +28,16 @@ object GeoMath {
         return (Math.toDegrees(atan2(y, x)) + 360) % 360
     }
 
+    /** p에서 방위각 [bearingDeg]로 [distanceM]만큼 간 점(구면 근사). */
+    fun destination(p: GeoPoint, bearingDeg: Double, distanceM: Double): GeoPoint {
+        val d = distanceM / EARTH_RADIUS_M
+        val b = Math.toRadians(bearingDeg)
+        val lat1 = Math.toRadians(p.lat); val lon1 = Math.toRadians(p.lon)
+        val lat2 = asin(sin(lat1) * cos(d) + cos(lat1) * sin(d) * cos(b))
+        val lon2 = lon1 + atan2(sin(b) * sin(d) * cos(lat1), cos(d) - sin(lat1) * sin(lat2))
+        return GeoPoint(Math.toDegrees(lat2), Math.toDegrees(lon2))
+    }
+
     /** 두 방위각의 차이(0~180°). */
     fun angleDiffDeg(a: Double, b: Double): Double {
         val d = abs(a - b) % 360
