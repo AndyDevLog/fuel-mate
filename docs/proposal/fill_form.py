@@ -1,7 +1,7 @@
 """docs/proposal.md → 공식 접수양식 02의 8개 답변 칸. 01·03·04(개인정보)는 건드리지 않는다.
 
 양식: 공모전 사이트 /downloads/contest-application-consent.docx (저장소에 넣지 않는다)
-캡처 폴더: map.jpg, mycar.jpg, drive.jpg(에뮬레이터 앱 영역), notify.jpg(내비 위 알림, 전체 화면)
+캡처 폴더: parked.jpg, drive.jpg, navi.jpg, trip.jpg(모두 에뮬레이터 앱 영역 1707×1210, 전체 화면에서 x=853·y=90부터 잘라 냄)
 
   mkdir -p /tmp/form && unzip -q contest-application-consent.docx -d /tmp/form/unpacked
   python3 docs/proposal/fill_form.py docs/proposal.md /tmp/form/unpacked <캡처 폴더>
@@ -78,10 +78,10 @@ def blocks(lines: list[str]) -> str:
 
 
 # ---- 화면 캡처(7번 칸에 붙임)
-IMAGES = [("map.jpg", "도로 지도(정차): 진행 방향 앞 5km를 비·어둠·급정거별로 칠한 앞길, 앞 5km 막대와 알림"),
-          ("mycar.jpg", "내 차 화면: 차량 신호와 내가 보내는 신호"),
-          ("drive.jpg", "주행 모드: 큰 글자 한 줄 + 보조 한 줄, 앞 3km를 한 줄로 칠한 앞길 띠(지도·애니메이션 없음)"),
-          ("notify.jpg", "앞길 알림: 내비게이션을 켜 둔 채 주행할 때 화면 위에 잠깐 뜨는 카드")]
+IMAGES = [("parked.jpg", "정차 화면: 가는 길 추천 주유소와 실제 이득(돌아가는 기름값을 뺀 값), 탭 한 번 경유지 추가, 지난 운행 요약"),
+          ("drive.jpg", "주행 화면: 큰 글자 한 줄 + 보조 한 줄 + 경유지 추가 버튼 하나(목록·설정·애니메이션 없음)"),
+          ("navi.jpg", "경유지 추가 후: 차 안 내비게이션이 추천 주유소를 거치는 경로로 다시 안내"),
+          ("trip.jpg", "운행 요약과 계산 방법: 급제동·고속·긴 정차 비용(추정)과 쓴 가정값")]
 media = unpacked / "word" / "media"
 media.mkdir(exist_ok=True)
 rels_path = unpacked / "word" / "_rels" / "document.xml.rels"
