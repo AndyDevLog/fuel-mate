@@ -5,6 +5,7 @@ import io.fuelmate.core.model.EnergyOrigin
 import io.fuelmate.core.model.Gear
 import io.fuelmate.core.model.GeoFix
 import io.fuelmate.core.model.GeoPoint
+import io.fuelmate.core.model.Trip
 
 /** 스토어에 들어오는 모든 변화. 어댑터는 SDK 값을 이 타입으로 바꿔서 넣기만 한다. */
 sealed interface Action {
@@ -13,7 +14,8 @@ sealed interface Action {
 
     // 차량 (AAOS Car API)
     data class SpeedSample(val timeMs: Long, val speedMps: Float) : Action
-    data class GearChanged(val gear: Gear) : Action
+    /** [timeMs]는 속도 표본과 같은 시계, [wallMs]는 벽시계(운행 날짜용). 운행 시작·끝이 기어로 정해진다 */
+    data class GearChanged(val gear: Gear, val timeMs: Long, val wallMs: Long) : Action
     data class DriveModeChanged(val restricted: Boolean, val activeRestrictions: Int) : Action
 
     /**
@@ -29,6 +31,9 @@ sealed interface Action {
         val capacity: Double? = null,
         val percent: Float? = null,
     ) : Action
+
+    // 운행 기록 (앱이 차 안 저장소에서 읽어 되돌린다)
+    data class TripsRestored(val trips: List<Trip>) : Action
 
     // 위치
     data class LocationFixed(val fix: GeoFix) : Action

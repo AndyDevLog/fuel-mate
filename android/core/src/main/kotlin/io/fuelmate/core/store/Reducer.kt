@@ -1,6 +1,6 @@
 package io.fuelmate.core.store
 
-import io.fuelmate.core.detect.HardBrakeRule
+import io.fuelmate.core.detect.DriveDetector
 import io.fuelmate.core.energy.EnergyRules
 import io.fuelmate.core.geo.GeoMath
 import io.fuelmate.core.model.AppState
@@ -8,8 +8,10 @@ import io.fuelmate.core.model.DriveEvent
 import io.fuelmate.core.model.DriveMode
 import io.fuelmate.core.model.EnergyMeter
 import io.fuelmate.core.model.EnergyState
+import io.fuelmate.core.model.Gear
 import io.fuelmate.core.model.GeoPoint
 import io.fuelmate.core.model.Odometer
+import io.fuelmate.core.model.Trip
 import io.fuelmate.core.model.VehicleSnapshot
 
 /**
@@ -17,35 +19,17 @@ import io.fuelmate.core.model.VehicleSnapshot
  * 같은 입력이면 항상 같은 출력이라서, "이 신호가 오면 이 화면"을 단위 테스트로 확인할 수 있다.
  */
 fun reduce(state: AppState, action: Action): AppState = when (action) {
-    is Action.GearChanged -> state.withVehicle { copy(gear = action.gear) }
+    is Action.GearChanged -> reduceGear(state, action)
 
-    is Action.BrakeChanged -> {
-        val next = state.withVehicle { copy(brakePressed = action.pressed) }
-        if (action.pressed == true) next
-        else next.copy(brakeTracker = HardBrakeRule.onBrakeReleased(state.brakeTracker))
-    }
+    is Action.BrakeChanged -> state.withVehicle { copy(brakePressed = action.pressed) }
 
-    is Action.SpeedSample -> {
-        val result = HardBrakeRule.onSpeed(
-            state.brakeTracker, action.timeMs, action.speedMps, state.vehicle.brakePressed == true,
-        )
-        val next = state.copy(
-            vehicle = state.vehicle.copy(speedMps = action.speedMps),
-            brakeTracker = result.tracker,
-            lastMovingMs = if (action.speedMps > EnergyRules.MOVING_MPS) action.timeMs else state.lastMovingMs,
-        )
-        if (!result.fired) next
-        else next.addEvent(
-            DriveEvent.HardBrake(
-                timeMs = action.timeMs,
-                startSpeedMps = result.tracker.pressStartSpeedMps ?: action.speedMps,
-            ),
-        )
-    }
+    is Action.SpeedSample -> reduceSpeed(state, action)
 
     is Action.DriveModeChanged -> state.copy(drive = DriveMode(action.restricted, action.activeRestrictions))
 
     is Action.EnergyReading -> reduceEnergy(state, action)
+
+    is Action.TripsRestored -> state.copy(trips = action.trips.take(AppState.MAX_TRIPS))
 
     is Action.LocationFixed -> state.copy(
         location = action.fix,
@@ -53,6 +37,59 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
     )
     is Action.DestinationChanged -> state.copy(destination = action.destination)
 }
+
+/** 운행이 이보다 짧게 움직였으면(기어만 넣었다 뺌) 남기지 않는다 */
+const val MIN_TRIP_M = 100.0
+
+/**
+ * P에서 벗어나면 운행 시작, P로 돌아오면 운행 끝. UNKNOWN은 무시한다.
+ * 앱을 주행 중에 켜면 첫 기어 값(D)에서 시작하므로 그 전 구간은 빠진다.
+ */
+private fun reduceGear(state: AppState, a: Action.GearChanged): AppState {
+    if (a.gear == Gear.UNKNOWN) return state
+    val step = DriveDetector.onGear(state.driveTracker, a.timeMs, a.gear, state.vehicle.speedMps)
+    val trip = state.trip?.withDrive(step.events, step.idleEndedMs)
+    val next = state.copy(vehicle = state.vehicle.copy(gear = a.gear), driveTracker = step.tracker)
+    return when {
+        a.gear == Gear.P && trip != null -> {
+            val done = trip.copy(endMs = a.timeMs)
+            val keep = done.distanceM >= MIN_TRIP_M
+            next.copy(trip = null, trips = if (keep) (listOf(done) + state.trips).take(AppState.MAX_TRIPS) else state.trips)
+        }
+        a.gear != Gear.P && trip == null ->
+            next.copy(trip = Trip(startMs = a.timeMs, startWallMs = a.wallMs, energyKind = state.energy?.kind))
+        else -> next.copy(trip = trip)
+    }
+}
+
+private fun reduceSpeed(state: AppState, a: Action.SpeedSample): AppState {
+    val v = state.vehicle
+    val prev = state.driveTracker.window.lastOrNull()
+    val step = DriveDetector.onSpeed(state.driveTracker, a.timeMs, a.speedMps, v.brakePressed == true, v.gear)
+    val trip = state.trip?.let { t ->
+        var next = t.withDrive(step.events, step.idleEndedMs)
+            .copy(endMs = a.timeMs, maxSpeedMps = maxOf(t.maxSpeedMps, a.speedMps))
+        val dtMs = prev?.let { a.timeMs - it.timeMs }
+        if (prev != null && dtMs != null && dtMs in 1..DriveDetector.MAX_GAP_MS) {
+            val avg = (prev.speedMps + a.speedMps) / 2.0
+            next = next.copy(
+                distanceM = next.distanceM + avg * dtMs / 1000.0,
+                movingMs = if (avg > DriveDetector.MOVING_MPS) next.movingMs + dtMs else next.movingMs,
+            )
+        }
+        next
+    }
+    return state.copy(
+        vehicle = v.copy(speedMps = a.speedMps),
+        driveTracker = step.tracker,
+        trip = trip,
+        lastMovingMs = if (a.speedMps > EnergyRules.MOVING_MPS) a.timeMs else state.lastMovingMs,
+    )
+}
+
+private fun Trip.withDrive(events: List<DriveEvent>, idleEndedMs: Long?): Trip =
+    if (events.isEmpty() && idleEndedMs == null) this
+    else copy(events = this.events + events, idleMs = idleMs + (idleEndedMs ?: 0))
 
 /** 공급원(종류·출처)이 같으면 받은 값만 덮어쓰고 계량기를 고친다. 바뀌면 새로 시작한다 */
 private fun reduceEnergy(state: AppState, r: Action.EnergyReading): AppState {
@@ -68,7 +105,16 @@ private fun reduceEnergy(state: AppState, r: Action.EnergyReading): AppState {
         state.energyMeter, prev.amount, next.amount, next.capacity,
         moving = state.lastMovingMs?.let { r.timeMs - it <= EnergyRules.REGEN_WINDOW_MS } ?: false,
     )
-    return state.copy(energy = next, energyMeter = meter)
+    // 공급원이 바뀌어 계량기가 새로 시작하면 차이를 운행에 더하지 않는다
+    val trip = state.trip?.let { t ->
+        if (prev == null) t.copy(energyKind = r.kind)
+        else t.copy(
+            energyKind = r.kind,
+            energyUsed = t.energyUsed + (meter.used - state.energyMeter.used),
+            energyAdded = t.energyAdded + (meter.added - state.energyMeter.added),
+        )
+    }
+    return state.copy(energy = next, energyMeter = meter, trip = trip)
 }
 
 private fun Odometer.advance(from: GeoPoint?, to: GeoPoint): Odometer {
@@ -79,5 +125,3 @@ private fun Odometer.advance(from: GeoPoint?, to: GeoPoint): Odometer {
 
 private inline fun AppState.withVehicle(change: VehicleSnapshot.() -> VehicleSnapshot) =
     copy(vehicle = vehicle.change())
-
-private fun AppState.addEvent(event: DriveEvent) = copy(events = (listOf(event) + events).take(AppState.MAX_EVENTS))

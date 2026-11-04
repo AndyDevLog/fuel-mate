@@ -1,6 +1,6 @@
 package io.fuelmate.core.model
 
-import io.fuelmate.core.detect.BrakeTracker
+import io.fuelmate.core.detect.DriveTracker
 
 /**
  * 앱 전체 상태. 화면이 보여줄 것은 이 값 하나로 결정된다.
@@ -19,13 +19,16 @@ data class AppState(
     val energyMeter: EnergyMeter = EnergyMeter(),
     /** 마지막으로 움직이던 속도 표본의 시각. 잔량이 늘었을 때 회생인지 충전인지 가른다 */
     val lastMovingMs: Long? = null,
-    /** 최근 운전 사건(새 것이 앞). 최대 [MAX_EVENTS]개. */
-    val events: List<DriveEvent> = emptyList(),
-    /** 급정거 판정용 내부 상태. 화면은 쓰지 않는다. */
-    val brakeTracker: BrakeTracker = BrakeTracker(),
+    /** 지금 운행(기어가 P가 아닌 동안). P면 null */
+    val trip: Trip? = null,
+    /** 끝난 운행(새 것이 앞). 최대 [MAX_TRIPS]개. 앱이 차 안에 저장하고 다시 켤 때 되돌린다 */
+    val trips: List<Trip> = emptyList(),
+    /** 운전 사건 판정용 내부 상태. 화면은 쓰지 않는다 */
+    val driveTracker: DriveTracker = DriveTracker(),
 ) {
     companion object {
-        const val MAX_EVENTS = 50
+        /** 하루 4번이면 7주 가까이. "내 평소 대비"(지난 4주)에 충분하다 */
+        const val MAX_TRIPS = 200
     }
 }
 
@@ -39,14 +42,4 @@ data class Odometer(val meters: Double = 0.0, val epoch: Int = 0) {
         /** 위치는 1초마다 온다. 300m/s는 차가 낼 수 없는 속도다 */
         const val JUMP_M = 300.0
     }
-}
-
-/** 내 차에서 감지한 운전 사건. 운행 요약과 운전 습관 비용 계산에 쓴다. */
-sealed interface DriveEvent {
-    val timeMs: Long
-
-    data class HardBrake(
-        override val timeMs: Long,
-        val startSpeedMps: Float,
-    ) : DriveEvent
 }

@@ -24,7 +24,16 @@ import io.fuelmate.location.LocationMode
 import io.fuelmate.location.LocationSink
 import io.fuelmate.location.LocationSource
 import io.fuelmate.location.NaviHelperSource
+import io.fuelmate.trip.TripStorage
 import io.fuelmate.ui.MainActivity
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.drop
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import io.fuelmate.vehicle.CarApiAdapter
 import io.fuelmate.vehicle.PleosVehicleAdapter
 
@@ -43,6 +52,8 @@ class CollectorService : Service() {
     private lateinit var locationMode: LocationMode
     private lateinit var energy: EnergySource
     private lateinit var energyMode: EnergyMode
+    private lateinit var tripStorage: TripStorage
+    private val scope = MainScope()
 
     inner class LocalBinder : Binder() {
         val store: Store get() = this@CollectorService.store
@@ -69,12 +80,30 @@ class CollectorService : Service() {
         startForeground(NOTIFICATION_ID, notification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
         Log.i("수집 서비스 시작")
 
+        // 운행 기록을 먼저 되돌린다(차량 신호보다 앞서야 새 운행이 기록 앞에 붙는다)
+        tripStorage = TripStorage(this)
+        store.dispatch(Action.TripsRestored(tripStorage.load()))
+        Log.i("운행 기록 ${store.state.value.trips.size}개 불러옴")
+        saveTripsOnChange()
+
         vehicle = PleosVehicleAdapter(this, store::dispatch).also { it.start() }
         carApi = CarApiAdapter(this, store::dispatch).also { it.start() }
         locationMode = LocationMode.load(this)
         location = createLocation(locationMode).also { it.start(locationSink) }
         energyMode = EnergyMode.load(this)
         energy = createEnergy(energyMode).also { it.start() }
+    }
+
+    /** 운행이 끝나 기록이 바뀔 때만 파일에 쓴다. 쓰기는 메인 스레드 밖에서 */
+    private fun saveTripsOnChange() {
+        scope.launch {
+            store.state.map { it.trips }.distinctUntilChanged().drop(1).collect { trips ->
+                withContext(Dispatchers.IO) { tripStorage.save(trips) }
+                trips.firstOrNull()?.let { t ->
+                    Log.i("운행 저장: ${"%.1f".format(t.distanceM / 1000)}km ${t.durationMs / 1000}초, 사건 ${t.events.size}개, 기록 ${trips.size}개")
+                }
+            }
+        }
     }
 
     private fun createEnergy(mode: EnergyMode): EnergySource {
@@ -118,6 +147,7 @@ class CollectorService : Service() {
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onDestroy() {
+        scope.cancel()
         energy.stop()
         location.stop()
         carApi.stop()

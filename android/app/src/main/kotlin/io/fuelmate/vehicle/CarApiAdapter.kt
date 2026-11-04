@@ -30,7 +30,9 @@ class CarApiAdapter(private val context: Context, private val dispatch: (Action)
             when (value.propertyId) {
                 VehiclePropertyIds.PERF_VEHICLE_SPEED ->
                     dispatch(Action.SpeedSample(SystemClock.elapsedRealtime(), value.value as Float))
-                VehiclePropertyIds.GEAR_SELECTION -> dispatch(Action.GearChanged(gearOf(value.value as Int)))
+                VehiclePropertyIds.GEAR_SELECTION -> dispatch(
+                    Action.GearChanged(gearOf(value.value as Int), SystemClock.elapsedRealtime(), System.currentTimeMillis()),
+                )
             }
         }
 

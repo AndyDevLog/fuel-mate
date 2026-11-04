@@ -5,6 +5,7 @@ import io.fuelmate.core.model.DriveEvent
 import io.fuelmate.core.model.EnergyOrigin
 import io.fuelmate.core.model.Gear
 import io.fuelmate.core.model.LocationOrigin
+import io.fuelmate.core.model.Trip
 import kotlin.math.roundToInt
 
 /** 뼈대 단계의 상태 요약. 기능 화면이 생기면 개발용으로만 남긴다. */
@@ -24,7 +25,18 @@ object StatusText {
         }
         appendLine("이번 실행 주행 거리: ${"%.1f".format(s.odometer.meters / 1000)} km")
         appendLine("위치: ${s.location?.origin?.let { if (it == LocationOrigin.DEMO_TRACK) "데모 경로" else "내비" } ?: "모름"}")
-        appendLine("급정거: ${s.events.count { it is DriveEvent.HardBrake }}회")
+        appendLine()
+        appendLine("지금 운행: ${s.trip?.let { tripLine(it) } ?: "없음(P)"}")
+        appendLine("지난 운행: ${s.trips.firstOrNull()?.let { tripLine(it) } ?: "없음"}")
+        appendLine("저장된 운행: ${s.trips.size}개")
+    }
+
+    private fun tripLine(t: Trip): String {
+        val unit = t.energyKind?.unit ?: ""
+        return "${"%.1f".format(t.distanceM / 1000)}km · ${t.durationMs / 60_000}분 ${t.durationMs / 1000 % 60}초 · " +
+            "사용 ${"%.2f".format(t.energyUsed)}$unit · " +
+            "급가속 ${t.count<DriveEvent.HardAccel>()} 급감속 ${t.count<DriveEvent.HardDecel>()} " +
+            "급제동 ${t.count<DriveEvent.HardBrake>()} 긴 정차 ${t.count<DriveEvent.LongIdle>()}"
     }
 
     private fun energyLine(s: AppState): String {
