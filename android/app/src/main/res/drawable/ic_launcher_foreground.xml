@@ -22,7 +22,7 @@
 
         <!-- 가격 창 -->
         <path
-            android:fillColor="#1D4ED8"
+            android:fillColor="#15803D"
             android:pathData="M41,34 h14 a2,2 0 0 1 2,2 v9 a2,2 0 0 1 -2,2 h-14 a2,2 0 0 1 -2,-2 v-9 a2,2 0 0 1 2,-2 z" />
 
         <!-- 받침 -->
@@ -41,7 +41,7 @@
 
         <!-- 몸통의 동그란 표시 -->
         <path
-            android:fillColor="#1D4ED8"
+            android:fillColor="#15803D"
             android:pathData="M48,62 m-7,0 a7,7 0 1 0 14,0 a7,7 0 1 0 -14,0" />
     </group>
 </vector>
