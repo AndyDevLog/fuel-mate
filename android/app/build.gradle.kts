@@ -6,31 +6,28 @@ plugins {
 
 /**
  * release 서명 키는 저장소 밖에 둔다(.gitignore에도 있지만 실수로 커밋하지 않게).
- * 기본 위치: ~/.android-keys/road-sensor/keystore.properties (storeFile, storePassword, keyAlias, keyPassword)
- * 다른 위치는 -ProadSensor.keystore=<경로>.
+ * 기본 위치: ~/.android-keys/fuel-mate/keystore.properties (storeFile, storePassword, keyAlias, keyPassword)
+ * 다른 위치는 -PfuelMate.keystore=<경로>.
  * 키가 없으면 release APK는 서명되지 않은 채로 나온다. R8 결과를 에뮬레이터에서 시험할 때만
- * -ProadSensor.debugSignRelease=true로 디버그 키 서명을 쓴다(제출용으로 쓰지 않는다).
+ * -PfuelMate.debugSignRelease=true로 디버그 키 서명을 쓴다(제출용으로 쓰지 않는다).
  */
 val keystoreProps: Properties? = run {
-    val path = (findProperty("roadSensor.keystore") as String?)
-        ?: "${System.getProperty("user.home")}/.android-keys/road-sensor/keystore.properties"
+    val path = (findProperty("fuelMate.keystore") as String?)
+        ?: "${System.getProperty("user.home")}/.android-keys/fuel-mate/keystore.properties"
     file(path).takeIf { it.isFile }?.let { f -> Properties().apply { f.inputStream().use(::load) } }
 }
-val debugSignRelease = (findProperty("roadSensor.debugSignRelease") as String?) == "true"
+val debugSignRelease = (findProperty("fuelMate.debugSignRelease") as String?) == "true"
 
 android {
-    namespace = "io.roadsensor"
+    namespace = "io.fuelmate"
     compileSdk = 34
 
     defaultConfig {
-        applicationId = "io.roadsensor"
+        applicationId = "io.fuelmate"
         minSdk = 28
         targetSdk = 34
         versionCode = 1
         versionName = "0.1.0"
-
-        // 에뮬레이터에서는 adb reverse tcp:8080 tcp:8080 으로 맥의 서버에 붙는다
-        buildConfigField("String", "SERVER_URL", "\"http://127.0.0.1:8080\"")
     }
 
     signingConfigs {
@@ -63,10 +60,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    buildFeatures {
-        buildConfig = true
-    }
-
     // AAOS Car API (CarUxRestrictions, CarPropertyManager)
     useLibrary("android.car")
 }
@@ -76,6 +69,4 @@ dependencies {
     implementation("ai.pleos.playground:Vehicle:2.3.2")
     implementation("ai.pleos.playground:NaviHelper:3.0.5")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.10.2")
-    // WebSocket 구독(MapFeed). Apache License 2.0
-    implementation("com.squareup.okhttp3:okhttp:4.12.0")
 }

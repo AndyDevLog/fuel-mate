@@ -16,5 +16,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "road-sensor"
+rootProject.name = "fuel-mate"
 include(":core", ":app")

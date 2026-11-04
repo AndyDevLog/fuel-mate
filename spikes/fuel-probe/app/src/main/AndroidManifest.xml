@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Pleos Vehicle SDK 2.3.2 @RequiresPermission(javap): Fuel·EvBattery = CAR_ENERGY, Odometer·Gear = CAR_DRIVE, HVAC = CAR_CLIMATE -->
+    <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />
+    <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
+    <uses-permission android:name="pleos.car.permission.CAR_CLIMATE" />
+    <uses-permission android:name="pleos.car.permission.CAR_INFO" />
+    <!-- NaviHelper: 조회 NAVI_ROUTE, 경로·경유지 요청 NAVI_ROUTE_SEARCH (docs/pleos/navihelper-sdk.md) -->
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
+    <uses-permission android:name="pleos.car.permission.NAVI_ROUTE_SEARCH" />
+
+    <!-- AAOS 표준 속성 비교용. 보호 수준은 에뮬레이터 dumpsys 기준(docs/pivot-fuel.md) -->
+    <uses-permission android:name="android.car.permission.CAR_ENERGY" />
+    <uses-permission android:name="android.car.permission.CAR_INFO" />
+    <uses-permission android:name="android.car.permission.CAR_ENERGY_PORTS" />
+    <uses-permission android:name="android.car.permission.CAR_EXTERIOR_ENVIRONMENT" />
+    <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
+    <uses-permission android:name="android.car.permission.CAR_MILEAGE" />
+    <uses-permission android:name="android.car.permission.CAR_SPEED" />
+
+    <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
+
+    <application
+        android:label="Fuel Probe"
+        android:allowBackup="false">
+
+        <meta-data android:name="com.hmg.rotary.ROTARY_SUPPORTED" android:value="false" />
+        <uses-library android:name="android.car" android:required="false" />
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+    </application>
+</manifest>

@@ -180,6 +180,25 @@ data class TelltaleData(val type: TelltaleType, val state: TelltaleState,
 - ⚠️ `getTelltalesInfo`의 어노테이션에는 `CAR_SAFETY`라고 적혀 있는데, 본문에는 `PRIVATE_CAR_SAFETY`라고 적혀 있다. 어느 쪽이 맞는지 에뮬레이터에서 직접 호출해 확인해야 한다.
 - Safety에는 그 밖에 `hasLowWasherFluidWarning`(워셔액 부족), 엔진·브레이크·변속기 오일 레벨, 안전벨트, 에어백 API가 있다. 각 API가 요구하는 퍼미션은 아직 확인하지 않았다.
 
+## SteeringWheel: 핸들 각도 (`vehicle.getSteeringWheel()`)
+
+공식 퍼미션 표에 SteeringWheel 도메인이 없다. 아래는 SDK 2.3.2를 javap로 확인한 것(2026-10-31).
+
+| API | 시그니처 | 퍼미션(@RequiresPermission) |
+| --- | --- | --- |
+| 능력 확인 | `checkSteeringWheelAngleCapabilities((CapabilityConfig, AreaBounds<Float>) -> Unit, (Exception) -> Unit)` | `CAR_DRIVE` |
+| 현재 값 | `getCurrentSteeringWheelAngle((Float) -> Unit, (Exception) -> Unit)` | `CAR_DRIVE` |
+| 구독 | `registerSteeringWheelAngle(SteeringWheelAngleListener)` / `unregister…` | `CAR_DRIVE` |
+| 리스너 | `onSteeringWheelAngleUpdated(Float?)` | |
+
+- 내부적으로 AAOS `PERF_STEERING_ANGLE`을 읽는다. 일반 앱이 AAOS로 직접 읽으려면 `android.car.permission.READ_CAR_STEERING`이 필요한데 부여되지 않았다(`granted=false`). SDK로 읽는다
+- 에뮬레이터 결과(`spikes/input-probe`, Virtual Console Steering 슬라이더):
+  - 능력: `READ`, 범위 −470 ~ 500. **실제로는 −540 ~ 540이 왔다**(문서·능력 값과 다름)
+  - 값이 바뀔 때 간격: 최소 99ms, 중앙 201ms, 평균 372ms(128회). **최대 약 10Hz**(차량 속성 설정 최소 주기 10Hz와 일치)
+  - 값이 안 바뀌면 약 3초마다 같은 값이 한 번 온다
+  - 실차에서 몇 Hz로 오는지는 모른다
+- 가속 페달 위치는 SDK에도 AAOS 표준 속성에도 없다. 브레이크는 밟음/뗌(Boolean)만 있다. Virtual Console에는 브레이크 위치(%)가 있지만 앱에는 Boolean으로만 온다
+
 ## 리스너 전체 목록 (이 프로젝트 관련만)
 
 | 리스너 | 콜백 | 등록 위치 | 퍼미션 |
@@ -190,6 +209,7 @@ data class TelltaleData(val type: TelltaleType, val state: TelltaleState,
 | `TelltaleInfoListener` | `onTelltaleInfoUpdated(Telltales?)` | `Safety.registerTelltales(l)` | `PRIVATE_CAR_SAFETY` ⚠️ |
 | `LowWasherFluidWaringListener` | 확인 필요 | `Safety.registerLowWasherFluidWaringState` | 확인 필요 |
 | `TurnSignalStateListener` | 확인 필요 | `TurnSignal` 도메인 | `CAR_LIGHTS` (대표 퍼미션 표 기준) |
+| `SteeringWheelAngleListener` | `onSteeringWheelAngleUpdated(Float?)` | `SteeringWheel.registerSteeringWheelAngle(l)` | `CAR_DRIVE` |
 
 모든 리스너에는 공통 `onFailed(e: Exception)`도 있다. 리스너 이름의 `Waring` 오타는 SDK의 실제 이름이다.
 
