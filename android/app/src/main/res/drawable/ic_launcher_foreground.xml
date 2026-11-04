@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  앱 아이콘 전경(직접 그린 벡터, 외부 이미지 없음): 흰 주유기.
+  적응형 아이콘 규격 108×108dp, 잘리지 않는 안전 영역은 가운데 66dp(21~87)라 그 안에만 그린다.
+  정중앙 맞춤: 그림 전체의 경계(받침 왼쪽 x=30 ~ 호스 바깥 x=76.75, 몸통 위 y=28 ~ 받침 아래 y=82)의
+  가운데가 (53.4, 55)라서 (+0.6, −1) 옮겨 아이콘 중심 (54, 54)에 맞춘다.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <group
+        android:translateX="0.625"
+        android:translateY="-1">
+
+        <!-- 몸통 -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M38,28 h20 a4,4 0 0 1 4,4 v46 h-28 v-46 a4,4 0 0 1 4,-4 z" />
+
+        <!-- 가격 창 -->
+        <path
+            android:fillColor="#1D4ED8"
+            android:pathData="M41,34 h14 a2,2 0 0 1 2,2 v9 a2,2 0 0 1 -2,2 h-14 a2,2 0 0 1 -2,-2 v-9 a2,2 0 0 1 2,-2 z" />
+
+        <!-- 받침 -->
+        <path
+            android:fillColor="#FFFFFF"
+            android:pathData="M32,76 h32 a2,2 0 0 1 2,2 v2 a2,2 0 0 1 -2,2 h-32 a2,2 0 0 1 -2,-2 v-2 a2,2 0 0 1 2,-2 z" />
+
+        <!-- 호스와 노즐 -->
+        <path
+            android:strokeColor="#FFFFFF"
+            android:strokeWidth="3.5"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round"
+            android:fillColor="#00000000"
+            android:pathData="M62,40 L68,40 L75,48 L75,68 A4,4 0 0 1 67,68 L67,58 L62,58" />
+
+        <!-- 몸통의 동그란 표시 -->
+        <path
+            android:fillColor="#1D4ED8"
+            android:pathData="M48,62 m-7,0 a7,7 0 1 0 14,0 a7,7 0 1 0 -14,0" />
+    </group>
+</vector>
