@@ -14,18 +14,32 @@ import io.fuelmate.core.store.Action
  */
 class PleosVehicleAdapter(context: Context, private val dispatch: (Action) -> Unit) {
 
-    private val vehicle = Vehicle(context)
+    /** SDK 인스턴스는 하나만 둔다. 에너지 공급원(energy/PleosEnergySource)도 이것을 쓴다 */
+    val vehicle = Vehicle(context)
     private val main = Handler(Looper.getMainLooper())
     private val unregisters = mutableListOf<() -> Unit>()
+    private var ready = false
+    private val pending = mutableListOf<() -> Unit>()
 
     fun start() {
         vehicle.initialize()
         // initialize()에 연결 완료 콜백이 없다. 스파이크에서 1.5초 뒤 구독이 정상 동작했다.
-        main.postDelayed({ subscribe() }, CONNECT_DELAY_MS)
+        main.postDelayed({
+            ready = true
+            subscribe()
+            pending.forEach { it() }
+            pending.clear()
+        }, CONNECT_DELAY_MS)
+    }
+
+    /** SDK 연결 뒤에 [block]을 메인 스레드에서 실행한다. 이미 연결됐으면 바로 실행한다 */
+    fun whenReady(block: () -> Unit) {
+        main.post { if (ready) block() else pending += block }
     }
 
     fun stop() {
         main.removeCallbacksAndMessages(null)
+        pending.clear()
         unregisters.forEach { runCatching(it) }
         unregisters.clear()
         vehicle.release()

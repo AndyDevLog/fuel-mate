@@ -8,6 +8,7 @@
 
 - Pleos Connect Emulator 2.1.0(Android Studio 에뮬레이터, AVD 이름 예: `Pleos_Connect_v2.1.0`). 앱은 AAOS 사용자 10에서 실행됩니다.
 - 에뮬레이터 차량은 전기차입니다. 위치는 고정이라 앱은 기본으로 데모 경로(시흥동 → 판교역)를 재생합니다.
+- 에뮬레이터는 달려도 배터리가 줄지 않아서, 앱은 기본으로 **데모 전기차**(속도로 소비를 계산해 잔량을 줄임, 시작 35%)를 씁니다. 차가 주는 실제 값(Pleos Fuel·EvBattery)이나 데모 연료차로 바꾸려면 아래 "에너지 공급원 바꾸기"를 보세요.
 - 속도·기어·브레이크는 Virtual Console(`adb forward tcp:8088 tcp:8088` 후 `http://127.0.0.1:8088/`)로 바꿉니다.
 
 ## 실행 방법
@@ -26,6 +27,12 @@ adb shell pm grant --user 10 io.fuelmate android.car.permission.CAR_SPEED
 
 ```bash
 adb shell am start --user 10 -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n io.fuelmate/.ui.MainActivity
+```
+
+에너지 공급원 바꾸기(앱을 다시 켜도 유지됩니다): `VEHICLE`(차량 값), `DEMO_EV`(데모 전기차, 기본), `DEMO_FUEL`(데모 연료차)
+
+```bash
+adb shell am start --user 10 -n io.fuelmate/.ui.MainActivity --es energy VEHICLE
 ```
 
 빌드에는 Android Studio 내장 JBR(`JAVA_HOME`)과 Android SDK(`ANDROID_HOME`)가 필요합니다. 단위 테스트는 `cd android && ./gradlew :core:test`.

@@ -10,10 +10,15 @@ import android.content.pm.ServiceInfo
 import android.os.Binder
 import android.os.IBinder
 import io.fuelmate.Log
+import io.fuelmate.core.model.EnergyKind
 import io.fuelmate.core.model.GeoFix
 import io.fuelmate.core.model.GeoPoint
 import io.fuelmate.core.store.Action
 import io.fuelmate.core.store.Store
+import io.fuelmate.energy.DemoEnergySource
+import io.fuelmate.energy.EnergyMode
+import io.fuelmate.energy.EnergySource
+import io.fuelmate.energy.PleosEnergySource
 import io.fuelmate.location.DemoTrackSource
 import io.fuelmate.location.LocationMode
 import io.fuelmate.location.LocationSink
@@ -36,6 +41,8 @@ class CollectorService : Service() {
     private lateinit var carApi: CarApiAdapter
     private lateinit var location: LocationSource
     private lateinit var locationMode: LocationMode
+    private lateinit var energy: EnergySource
+    private lateinit var energyMode: EnergyMode
 
     inner class LocalBinder : Binder() {
         val store: Store get() = this@CollectorService.store
@@ -46,6 +53,7 @@ class CollectorService : Service() {
             getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID, notification())
         }
         fun setLocationMode(mode: LocationMode) = this@CollectorService.switchLocation(mode)
+        fun setEnergyMode(mode: EnergyMode) = this@CollectorService.switchEnergy(mode)
     }
 
     // 원본 좌표는 로그에 남기지 않는다(데모·디버그 빌드도 기본으로 남기지 않는다)
@@ -65,6 +73,30 @@ class CollectorService : Service() {
         carApi = CarApiAdapter(this, store::dispatch).also { it.start() }
         locationMode = LocationMode.load(this)
         location = createLocation(locationMode).also { it.start(locationSink) }
+        energyMode = EnergyMode.load(this)
+        energy = createEnergy(energyMode).also { it.start() }
+    }
+
+    private fun createEnergy(mode: EnergyMode): EnergySource {
+        val state = { store.state.value }
+        return when (mode) {
+            EnergyMode.DEMO_EV -> DemoEnergySource.ev(state, store::dispatch)
+            EnergyMode.DEMO_FUEL -> DemoEnergySource.fuel(state, store::dispatch)
+            EnergyMode.VEHICLE -> {
+                val (kind, fuelCapacityL) = carApi.readEnergyInfo()
+                // 종류를 모르면 연료차로 본다: 지금 Pleos 탑재 차종(그랜저·아반떼)이 내연기관·하이브리드다
+                PleosEnergySource(vehicle, kind ?: EnergyKind.FUEL, fuelCapacityL, store::dispatch)
+            }
+        }
+    }
+
+    private fun switchEnergy(mode: EnergyMode) {
+        if (mode == energyMode) return
+        Log.i("에너지 공급원 변경: $energyMode → $mode")
+        energy.stop()
+        energyMode = mode
+        EnergyMode.save(this, mode)
+        energy = createEnergy(mode).also { it.start() }
     }
 
     private fun createLocation(mode: LocationMode): LocationSource = when (mode) {
@@ -86,6 +118,7 @@ class CollectorService : Service() {
     override fun onBind(intent: Intent?): IBinder = binder
 
     override fun onDestroy() {
+        energy.stop()
         location.stop()
         carApi.stop()
         vehicle.stop()

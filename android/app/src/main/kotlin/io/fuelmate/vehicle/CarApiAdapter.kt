@@ -10,6 +10,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.SystemClock
 import io.fuelmate.Log
+import io.fuelmate.core.energy.EnergyRules
+import io.fuelmate.core.model.EnergyKind
 import io.fuelmate.core.model.Gear
 import io.fuelmate.core.store.Action
 
@@ -44,6 +46,27 @@ class CarApiAdapter(private val context: Context, private val dispatch: (Action)
 
         props = car.getCarManager(Car.PROPERTY_SERVICE) as CarPropertyManager
         subscribeProperties()
+    }
+
+    /**
+     * 연료 종류(`INFO_FUEL_TYPE`)와 연료 탱크 용량(`INFO_FUEL_CAPACITY`, mL → L). 둘 다 정적 속성이라 한 번만 읽는다.
+     * 권한 `CAR_INFO`(normal). 에뮬레이터는 [10](전기)과 15000mL(전기차라 의미 없는 기본값)를 준다(docs/pivot-fuel.md 1·9장).
+     * [start] 뒤에 부른다.
+     */
+    fun readEnergyInfo(): Pair<EnergyKind?, Double?> {
+        val manager = props ?: return null to null
+        val types = runCatching { manager.getProperty<Any>(VehiclePropertyIds.INFO_FUEL_TYPE, 0).value }
+            .onFailure { Log.w("연료 종류 읽기 실패", it) }.getOrNull()
+        val list = when (types) {
+            is IntArray -> types.toList()
+            is Array<*> -> types.mapNotNull { it as? Int }
+            else -> emptyList()
+        }
+        val capacityL = runCatching { manager.getProperty<Float>(VehiclePropertyIds.INFO_FUEL_CAPACITY, 0).value }
+            .getOrNull()?.takeIf { it > 0f }?.let { it / 1000.0 }
+        val kind = EnergyRules.kindOf(list)
+        Log.i("연료 종류 $list → ${kind?.label ?: "모름"}, 탱크 ${capacityL ?: "모름"} L")
+        return kind to capacityL
     }
 
     /** 속도 권한을 새로 받았을 때 다시 구독한다. */

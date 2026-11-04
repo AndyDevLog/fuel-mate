@@ -109,7 +109,7 @@ Road Sensor → "내 차 주유비 매니저"로 바꿀 수 있는지 확인한 
 | 항목 | 결과 | 근거 |
 | --- | --- | --- |
 | 에뮬레이터가 전기차인가 | ✅ | `INFO_FUEL_TYPE`=[10](전기), `INFO_EV_BATTERY_CAPACITY`=77400.0, `INFO_EV_CONNECTOR_TYPE`=[5] |
-| 배터리 잔량 | ✅ | Pleos `getEvBatteryLevel`=77400.0(Float, Wh로 보임), `getEvBatteryStateOfCharge`=100(Int %), `getEvBatteryCapacity`=77400.0. AAOS `EV_BATTERY_LEVEL`=77400.0, `EV_CURRENT_BATTERY_CAPACITY`=77400.0. 모두 구독 가능 |
+| 배터리 잔량 | ✅ | Pleos `getEvBatteryLevel`=77400.0(Float, Wh로 보임), `getEvBatteryStateOfCharge`=100(Int %), `getEvBatteryCapacity`=77400.0(이것만 `pleos.car.permission.CAR_INFO`도 필요, 없으면 `SecurityException`). AAOS `EV_BATTERY_LEVEL`=77400.0, `EV_CURRENT_BATTERY_CAPACITY`=77400.0. 모두 구독 가능 |
 | Virtual Console로 배터리 바꾸기 | ✅ | Emulation Controls → Battery SOC를 움직이면 Pleos `ev.soc`가 바로 온다(67→73→86→53→47, 1% 단위 정수, 0.5~1초 간격으로 따라옴). Battery Energy를 바꾸면 Pleos `ev.level`과 AAOS `EV_BATTERY_LEVEL`이 같은 시각에 온다(77400→50000→12000). **두 값은 서로 연동되지 않는다**(SoC 47%인데 잔량 12,000Wh). 시연에서는 둘을 같이 맞춰야 한다 |
 | 전비 API | ✅ 존재 / ❌ 에뮬레이터 | Pleos `EvBattery` 순간·현재·누적·충전 후 전비 모두 미지원(`0x21600b13~b15`) |
 | 순간 전력·회생제동 | ❌ 에뮬레이터 / ❓ 실차 | AAOS `EV_BATTERY_INSTANTANEOUS_CHARGE_RATE`=0.0(1~10Hz). D + ACCEL로 약 10초 동안 시속 140km까지 가속했다가 BRAKE로 세웠지만 **0.0 그대로**였다. `EV_REGENERATIVE_BRAKING_STATE`=2도 그대로(이 값은 회생제동 **설정** 상태라 "지금 회생 중"은 아니다) |

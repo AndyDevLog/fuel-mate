@@ -4,12 +4,19 @@
     <!-- Pleos Vehicle SDK: Brake·Gear·Odometer (docs/pleos/vehicle-sdk.md) -->
     <uses-permission android:name="pleos.car.permission.CAR_DRIVE" />
 
+    <!-- Pleos Vehicle SDK: Fuel·EvBattery 잔량(normal, docs/pivot-fuel.md 1장) -->
+    <uses-permission android:name="pleos.car.permission.CAR_ENERGY" />
+    <!-- Pleos 배터리 용량(getEvBatteryCapacity)은 CAR_ENERGY만으로는 SecurityException이 난다(2026-11-04 에뮬레이터, normal) -->
+    <uses-permission android:name="pleos.car.permission.CAR_INFO" />
+
     <!-- Pleos NaviHelper 위치·목적지 조회 -->
     <uses-permission android:name="pleos.car.permission.NAVI_ROUTE" />
 
     <!-- AAOS: 속도(dangerous, 런타임 허용 필요)·기어 -->
     <uses-permission android:name="android.car.permission.CAR_SPEED" />
     <uses-permission android:name="android.car.permission.CAR_POWERTRAIN" />
+    <!-- AAOS: 연료 종류·탱크 용량(normal) -->
+    <uses-permission android:name="android.car.permission.CAR_INFO" />
 
     <!-- 수집 서비스(포그라운드) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />

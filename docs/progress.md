@@ -19,11 +19,29 @@
 - 저장소를 비우고 다시 시작(사용자 결정): 서버·시뮬레이터·지도 렌더러·기상청 연동·시험 앱을 지웠다. 수집 서비스, 차량 어댑터(브레이크·속도·기어·주행 규제), 위치 공급원(NaviHelper·데모 궤적), 급정거 판정, 거리계는 패키지 `io.fuelmate`로 옮겨 남겼다
 - 저장소 밖 백업(git에 없던 파일): `~/Developer/road-sensor-backup-20261104/`(기상청 키 `.env`, 이전 기획서 docx, Gleo·핸들 시험 앱)
 
+## 에너지 어댑터 (2026-11-04)
+
+- 구조: 공급원(`app/.../energy/`) → `Action.EnergyReading`(종류·출처·잔량·용량·퍼센트) → `:core` 리듀서가 `AppState.energy`와 계량기(`energyMeter`: 이번 실행에서 쓴 양·넣은 양)를 고친다. 양은 연료 L, 전기 kWh. 원화 환산은 단가 단계에서 붙인다
+- 공급원 3가지(`EnergyMode`, 실행 인텐트 `--es energy ...`로 바꾸고 저장)
+  - `VEHICLE`: AAOS `INFO_FUEL_TYPE`으로 종류를 고르고, 전기는 Pleos `EvBattery`(잔량 Wh·SoC·용량), 연료는 Pleos `Fuel.getFuelPercent` × 탱크 용량(AAOS `INFO_FUEL_CAPACITY`, 못 읽으면 55L 가정). 종류를 모르면 연료차로 본다
+  - `DEMO_EV`(기본): 77.4kWh 전기 SUV 가정값, 35%에서 시작. 1초마다 속도·기어로 소비 계산(가속·구름저항·공기저항, 회생 60%, 보조 0.6kW)
+  - `DEMO_FUEL`: 2.5L 휘발유 세단 가정값(효율 25%, 공회전 0.8L/h), 60L 탱크 25%에서 시작
+  - 정속 100km/h 소비: 데모 전기 약 18kWh/100km, 데모 연료 약 7L/100km(테스트로 범위 확인). 데모 소비는 우리 가정값이라 시연용이고 추정 검증에는 못 쓴다
+- 계량기 규칙: 줄면 쓴 양, 한 번에 용량 5% 넘게 줄면 값 조정(Virtual Console)으로 보고 안 셈, 달리면서 늘면 회생(쓴 양에서 뺌), 서서 늘면 주유·충전
+- 에뮬레이터 확인: 세 모드 모두 화면에 잔량이 나온다. `VEHICLE`은 Pleos 값(SoC 47%, 12.0/77.4kWh: 예전 시험 때 Virtual Console로 바꿔 둔 값)
+- Virtual Console 주행 확인(데모 전기차, `adb logcat -s FuelMate`의 "데모 에너지" 줄): P단 정지 0, D단 정지는 보조 전력만큼 조금, 0 → 111km/h 약 6초에 0.246kWh, 113 → 0 감속에서 0.164kWh를 되찾아 한 번 가속·정지에 순 0.118kWh. 충전은 0 그대로
+- 고친 것: 처음에는 "지금 속도"로 회생·충전을 갈라서 멈추는 순간 되찾은 양이 충전으로 세졌다(잔량이 속도보다 늦게 온다). 마지막으로 움직인 지 10초 안에 늘면 회생으로 본다(`EnergyRules.REGEN_WINDOW_MS`)
+- 알아 둘 것: 에뮬레이터는 약 5m/s²로 가속해서 고속에서는 바퀴 출력이 300kW를 넘는다. 데모 모델은 160kW에서 자르므로 급가속 소비를 실제보다 적게 센다(시연에는 문제없음)
+- 새로 안 것: Pleos `getEvBatteryCapacity`는 `pleos.car.permission.CAR_ENERGY`만으로는 `SecurityException`이 난다. `pleos.car.permission.CAR_INFO`(normal)를 함께 선언해야 한다
+- 아직 안 한 것: 주행 가능 거리(Pleos `Odometer.getRangeRemainingDistance`, 에뮬레이터 0.0), 데모 시작 잔량 저장(지금은 앱을 다시 켜면 처음부터), 화면에서 공급원 바꾸기
+
 ## 할 일
 
 - [x] 뼈대: `:core`(상태 스토어, 급정거 판정, 거리계, 데모 궤적) 테스트 20개, `:app` 수집 서비스 + 상태 화면. 에뮬레이터에서 설치·실행, 데모 경로 재생 확인(2026-11-04)
-- [ ] 저장소 이름 변경(GitHub, 로컬 폴더), 새 서명 키(사용자)
-- [ ] 차량 에너지 어댑터: 연료(Pleos `Fuel`) / 전기(Pleos `EvBattery`) + 데모 공급원
+- [x] 저장소 이름 변경(GitHub `AndyDevLog/fuel-mate`, 로컬 `~/Developer/fuel-mate`)(2026-11-04)
+- [ ] 새 서명 키(사용자, `~/.android-keys/fuel-mate/`)
+- [x] 차량 에너지 어댑터(2026-11-04): 아래 "에너지 어댑터" 참고. `:core` 테스트 29개
+- [x] 데모 소비를 Virtual Console 주행(D + ACCEL·BRAKE)으로 확인(2026-11-04)
 - [ ] 운행 기록: 운행 시작·끝(기어·주행 규제), 속도 기록, 급가속·급감속·급제동·긴 정차 판정
 - [ ] 운전 습관 비용 추정(:core, 테스트): 급제동 운동 에너지, 과속 공기저항, 긴 공회전 → 원화, 내 평소 대비
 - [ ] 유가·전기 단가: 공공데이터포털 한국석유공사 평균가, 전기 단가 설정

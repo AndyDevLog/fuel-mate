@@ -16,6 +16,7 @@ import android.view.Window
 import android.widget.TextView
 import io.fuelmate.Log
 import io.fuelmate.core.model.AppState
+import io.fuelmate.energy.EnergyMode
 import io.fuelmate.service.CollectorService
 import io.fuelmate.vehicle.CarApiAdapter
 import kotlinx.coroutines.Job
@@ -34,11 +35,14 @@ class MainActivity : Activity() {
     private var binder: CollectorService.LocalBinder? = null
     private lateinit var text: TextView
     private var askedPermissions = false
+    /** 실행 인텐트로 받은 에너지 공급원(개발·시연용). 서비스에 연결되면 넘긴다 */
+    private var pendingEnergyMode: EnergyMode? = null
 
     private val connection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             val b = service as CollectorService.LocalBinder
             binder = b
+            applyPendingModes()
             collect = scope.launch { b.store.state.collect { render(it) } }
         }
 
@@ -58,10 +62,31 @@ class MainActivity : Activity() {
             setPadding(64, 64, 64, 64)
         }
         setContentView(text)
+        readModes(intent)
 
         val intent = Intent(this, CollectorService::class.java)
         startForegroundService(intent)
         bindService(intent, connection, Context.BIND_AUTO_CREATE)
+    }
+
+    // singleTask라 다시 실행하면 새 화면 대신 여기로 온다
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        readModes(intent)
+        applyPendingModes()
+    }
+
+    private fun readModes(intent: Intent?) {
+        intent?.getStringExtra(EXTRA_ENERGY)?.let { name ->
+            pendingEnergyMode = runCatching { EnergyMode.valueOf(name) }.getOrNull()
+                ?: null.also { Log.w("모르는 에너지 공급원: $name") }
+        }
+    }
+
+    private fun applyPendingModes() {
+        val b = binder ?: return
+        pendingEnergyMode?.let { b.setEnergyMode(it) }
+        pendingEnergyMode = null
     }
 
     override fun onDestroy() {
@@ -103,5 +128,7 @@ class MainActivity : Activity() {
 
     private companion object {
         const val REQUEST_PERMISSIONS = 1
+        /** `--es energy VEHICLE|DEMO_EV|DEMO_FUEL` */
+        const val EXTRA_ENERGY = "energy"
     }
 }

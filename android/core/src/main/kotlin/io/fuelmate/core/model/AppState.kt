@@ -13,6 +13,12 @@ data class AppState(
     val destination: GeoPoint? = null,
     /** 주행 거리계. 위치 사이 거리를 더한다. 차량 거리계 API는 에뮬레이터에서 늘지 않는다(docs/pivot-fuel.md 2장). */
     val odometer: Odometer = Odometer(),
+    /** 남은 에너지. 공급원(차량·데모)이 첫 값을 주기 전에는 null */
+    val energy: EnergyState? = null,
+    /** 이번 실행에서 쓴·넣은 에너지 */
+    val energyMeter: EnergyMeter = EnergyMeter(),
+    /** 마지막으로 움직이던 속도 표본의 시각. 잔량이 늘었을 때 회생인지 충전인지 가른다 */
+    val lastMovingMs: Long? = null,
     /** 최근 운전 사건(새 것이 앞). 최대 [MAX_EVENTS]개. */
     val events: List<DriveEvent> = emptyList(),
     /** 급정거 판정용 내부 상태. 화면은 쓰지 않는다. */

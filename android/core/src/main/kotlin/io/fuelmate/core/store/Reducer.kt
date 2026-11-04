@@ -1,10 +1,13 @@
 package io.fuelmate.core.store
 
 import io.fuelmate.core.detect.HardBrakeRule
+import io.fuelmate.core.energy.EnergyRules
 import io.fuelmate.core.geo.GeoMath
 import io.fuelmate.core.model.AppState
 import io.fuelmate.core.model.DriveEvent
 import io.fuelmate.core.model.DriveMode
+import io.fuelmate.core.model.EnergyMeter
+import io.fuelmate.core.model.EnergyState
 import io.fuelmate.core.model.GeoPoint
 import io.fuelmate.core.model.Odometer
 import io.fuelmate.core.model.VehicleSnapshot
@@ -29,6 +32,7 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
         val next = state.copy(
             vehicle = state.vehicle.copy(speedMps = action.speedMps),
             brakeTracker = result.tracker,
+            lastMovingMs = if (action.speedMps > EnergyRules.MOVING_MPS) action.timeMs else state.lastMovingMs,
         )
         if (!result.fired) next
         else next.addEvent(
@@ -41,11 +45,30 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
 
     is Action.DriveModeChanged -> state.copy(drive = DriveMode(action.restricted, action.activeRestrictions))
 
+    is Action.EnergyReading -> reduceEnergy(state, action)
+
     is Action.LocationFixed -> state.copy(
         location = action.fix,
         odometer = state.odometer.advance(state.location?.point, action.fix.point),
     )
     is Action.DestinationChanged -> state.copy(destination = action.destination)
+}
+
+/** 공급원(종류·출처)이 같으면 받은 값만 덮어쓰고 계량기를 고친다. 바뀌면 새로 시작한다 */
+private fun reduceEnergy(state: AppState, r: Action.EnergyReading): AppState {
+    val prev = state.energy?.takeIf { it.kind == r.kind && it.origin == r.origin }
+    val base = prev ?: EnergyState(r.kind, r.origin)
+    val next = base.copy(
+        amount = r.amount ?: base.amount,
+        capacity = r.capacity ?: base.capacity,
+        reportedPercent = r.percent ?: base.reportedPercent,
+    )
+    val meter = if (prev == null) EnergyMeter()
+    else EnergyRules.advance(
+        state.energyMeter, prev.amount, next.amount, next.capacity,
+        moving = state.lastMovingMs?.let { r.timeMs - it <= EnergyRules.REGEN_WINDOW_MS } ?: false,
+    )
+    return state.copy(energy = next, energyMeter = meter)
 }
 
 private fun Odometer.advance(from: GeoPoint?, to: GeoPoint): Odometer {
