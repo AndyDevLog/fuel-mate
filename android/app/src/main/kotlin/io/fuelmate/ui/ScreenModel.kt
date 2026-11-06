@@ -33,26 +33,36 @@ sealed interface ScreenModel {
 
     /** 정차 중: 추천 카드, 이번 운행 요약, 계산 방법 */
     data class Parked(
-        val fuelLine: String,
+        val fuel: FuelCard,
         /** 목적지가 없을 때의 첫 화면. 있으면 [rec] 대신 보인다 */
         val start: StartCard?,
         val rec: RecCard,
         val trip: TripCard?,
-        val priceLine: String,
     ) : ScreenModel
+
+    /** 오른쪽 위 카드: 남은 연료와 오늘 단가 */
+    data class FuelCard(
+        val title: String,
+        val percentText: String,
+        /** 게이지 값(0~100). 모르면 null */
+        val percent: Int?,
+        val detail: String?,
+        val priceLine: String,
+    )
 
     /** 첫 화면: 앱 소개 + 목적지 고르기. 정차 중에만 보인다 */
     data class StartCard(val places: List<PlaceRow>)
 
-    data class PlaceRow(val place: SavedPlace, val line: String)
+    data class PlaceRow(val place: SavedPlace, val name: String, val kind: String)
 
     data class RecCard(
         val title: String,
         /** 추천이 없을 때 이유만 보인다 */
         val message: String?,
-        val name: String? = null,
-        val priceLine: String? = null,
+        /** 가장 크게 보이는 값: "약 1,680원 이득" */
         val gainLine: String? = null,
+        /** 이름 · 가격 · 우회 */
+        val placeLine: String? = null,
         val gainPositive: Boolean = false,
         val basisLine: String? = null,
         /** 경유지로 고른 곳이 추천과 다를 때: 추천과 비교한 한 줄 */
@@ -63,7 +73,8 @@ sealed interface ScreenModel {
         val waypointLine: String? = null,
     )
 
-    data class OtherOption(val station: Station, val line: String)
+    /** 다른 곳 표의 한 줄. 열을 맞춰 비교하기 쉽게 값을 나눠 둔다 */
+    data class OtherOption(val station: Station, val name: String, val price: String, val detour: String, val gain: String)
 
     data class TripCard(val title: String, val summary: String, val detail: String, val explanation: List<String>)
 
@@ -90,18 +101,26 @@ sealed interface ScreenModel {
             return Driving(main, sub.takeUnless { limit }, b.station)
         }
 
+        /** 다른 곳 표에 보일 수. 넓은 화면의 세로 공간을 채우면서 비교할 후보를 늘린다 */
+        private const val OTHERS_SHOWN = 4
+
         private fun parked(s: AppState): Parked {
             val e = s.energy
-            val fuelLine = if (e == null) "연료 모름" else buildString {
-                append("${e.kind.label} ${e.percent?.roundToInt() ?: "?"}%")
-                e.amount?.let { append(" · ${"%.1f".format(it)} / ${"%.0f".format(e.capacity ?: 0.0)} ${e.kind.unit}") }
-                if (e.origin == EnergyOrigin.DEMO) append(" (데모)")
-                if (s.location?.origin == LocationOrigin.NAVI_SIMULATED) append(" · 위치 데모(직선 이동)")
-            }
             val kind = e?.kind ?: EnergyKind.FUEL
-            val priceLine = "단가 ${"%,.0f".format(s.prices.of(kind))}원/${kind.unit} · ${s.prices.basis(kind)}"
+            val percent = e?.percent?.roundToInt()?.coerceIn(0, 100)
+            val detail = listOfNotNull(
+                e?.amount?.let { "${"%.1f".format(it)} / ${"%.0f".format(e.capacity ?: 0.0)} ${e.kind.unit}" + if (e.origin == EnergyOrigin.DEMO) " (데모)" else "" },
+                "위치 데모(직선 이동)".takeIf { s.location?.origin == LocationOrigin.NAVI_SIMULATED },
+            ).joinToString(" · ").ifEmpty { null }
+            val fuel = FuelCard(
+                title = kind.label,
+                percentText = percent?.let { "$it%" } ?: "모름",
+                percent = percent,
+                detail = detail,
+                priceLine = "단가 ${"%,.0f".format(s.prices.of(kind))}원/${kind.unit} · ${s.prices.basis(kind)}",
+            )
             val start = startCard(s)
-            return Parked(fuelLine, start, if (start == null) recCard(s) else RecCard(title = "", message = null), tripCard(s), priceLine)
+            return Parked(fuel, start, if (start == null) recCard(s) else RecCard(title = "", message = null), tripCard(s))
         }
 
         /** 목적지·경유지가 없고 연료차일 때(전기차는 충전소 추천이 준비 중이라 그 안내를 보인다) */
@@ -114,7 +133,7 @@ sealed interface ScreenModel {
                     PlaceKind.BOOKMARK -> "즐겨찾기"
                     PlaceKind.RECENT -> "최근"
                 }
-                PlaceRow(it, "$kind · ${it.name}")
+                PlaceRow(it, it.name, kind)
             }
             return StartCard(rows)
         }
@@ -122,12 +141,13 @@ sealed interface ScreenModel {
         private fun recCard(s: AppState): RecCard {
             val w = s.waypoint
             val r = StationRecommender.recommend(s)
+            // 이름과 실제 우회는 카드 위쪽에 이미 있어 내비 상태만 말한다
             val waypointLine = w?.let {
                 when {
-                    it.asDestination -> "내비: ${shortName(it.stationName, false)}로 안내 중"
-                    it.detourM != null -> "내비: ${shortName(it.stationName, false)} 경유 · 실제 우회 ${km(it.detourM!!)}"
-                    it.added -> "내비: ${shortName(it.stationName, false)} 경유 · 실제 우회 거리는 확인하지 못함"
-                    else -> "내비: ${shortName(it.stationName, false)} 경유지 추가 중"
+                    it.asDestination -> "내비가 이 주유소로 안내 중이에요"
+                    it.detourM != null -> "내비 경유지로 들어갔어요"
+                    it.added -> "내비 경유지로 들어갔어요 · 실제 우회 거리는 확인하지 못함"
+                    else -> "내비에 경유지를 넣는 중이에요"
                 }
             }
             if (w != null) return chosenCard(w, r, waypointLine)
@@ -135,9 +155,8 @@ sealed interface ScreenModel {
             return RecCard(
                 title = "가는 길 추천 주유소",
                 message = null,
-                name = shortName(r.best.station.name, false),
-                priceLine = "${price(r.best.station.priceWonPerL)}/L · 우회 약 ${km(r.best.detourM)}",
-                gainLine = if (r.worthDetour) "가까운 곳보다 ${HabitText.won(r.best.gainWon)} 이득" else "가까운 곳에서 넣어도 차이가 작아요",
+                gainLine = if (r.worthDetour) "${HabitText.won(r.best.gainWon)} 이득" else "가까운 곳에서 넣어도 차이가 작아요",
+                placeLine = "${shortName(r.best.station.name, false)} · ${price(r.best.station.priceWonPerL)}/L · 우회 약 ${km(r.best.detourM)}",
                 gainPositive = r.worthDetour,
                 basisLine = basis(r),
                 station = r.best.station,
@@ -157,7 +176,7 @@ sealed interface ScreenModel {
                 return RecCard(
                     title = title,
                     message = null,
-                    name = shortName(w.stationName, false),
+                    placeLine = shortName(w.stationName, false),
                     waypointLine = waypointLine,
                     others = r?.let { others(it, exclude = w.stationId) } ?: emptyList(),
                 )
@@ -165,8 +184,8 @@ sealed interface ScreenModel {
             val o = c.option
             val detour = if (c.actualDetour) "실제 우회 ${km(o.detourM)}" else "우회 약 ${km(o.detourM)}"
             val gainLine = when {
-                o.gainWon >= 10 -> "가까운 곳보다 ${HabitText.won(o.gainWon)} 이득"
-                o.gainWon <= -10 -> "가까운 곳보다 ${HabitText.won(-o.gainWon)} 더 들어요"
+                o.gainWon >= 10 -> "${HabitText.won(o.gainWon)} 이득"
+                o.gainWon <= -10 -> "${HabitText.won(-o.gainWon)} 더 들어요"
                 else -> "가까운 곳과 비슷해요"
             }
             // 고른 곳이 실제 우회가 되면 추정 우회인 추천과 맞비교할 수 없어 보이지 않는다
@@ -176,9 +195,8 @@ sealed interface ScreenModel {
             return RecCard(
                 title = title,
                 message = null,
-                name = shortName(o.station.name, false),
-                priceLine = "${price(o.station.priceWonPerL)}/L · $detour",
                 gainLine = gainLine,
+                placeLine = "${shortName(o.station.name, false)} · ${price(o.station.priceWonPerL)}/L · $detour",
                 gainPositive = o.gainWon >= 10,
                 basisLine = basis(r),
                 compareLine = compareLine,
@@ -189,17 +207,18 @@ sealed interface ScreenModel {
         }
 
         private fun others(r: Recommendation, exclude: String) =
-            r.options.filter { it.station.id != exclude }.take(2).map {
+            r.options.filter { it.station.id != exclude }.take(OTHERS_SHOWN).map {
                 OtherOption(
-                    it.station,
-                    (if (it.station.id == r.best.station.id && r.worthDetour) "추천 " else "") +
-                        "${shortName(it.station.name, false)} ${price(it.station.priceWonPerL)} · 우회 ${km(it.detourM)} · " +
-                        (if (it.gainWon >= 0) HabitText.won(it.gainWon) else "-${HabitText.won(abs(it.gainWon))}"),
+                    station = it.station,
+                    name = (if (it.station.id == r.best.station.id && r.worthDetour) "추천 " else "") + shortName(it.station.name, false),
+                    price = price(it.station.priceWonPerL),
+                    detour = km(it.detourM),
+                    gain = if (it.gainWon >= 0) HabitText.won(it.gainWon) else "-${HabitText.won(abs(it.gainWon))}",
                 )
             }
 
         private fun basis(r: Recommendation) =
-            "가득 ${"%.0f".format(r.fillL)}L 기준 · 비교: ${shortName(r.baseline.station.name, false)} ${price(r.baseline.station.priceWonPerL)}"
+            "가까운 ${shortName(r.baseline.station.name, false)} ${price(r.baseline.station.priceWonPerL)}보다 · 가득 ${"%.0f".format(r.fillL)}L 기준"
 
         private fun tripCard(s: AppState): TripCard? {
             val live = s.trip

@@ -56,10 +56,14 @@ data class Palette(
 object TextSize {
     const val DRIVE_MAIN = 48f
     const val DRIVE_SUB = 30f
-    const val TITLE = 22f
-    const val MAIN = 36f
+    /** 정차 카드에서 가장 먼저 읽을 값(이득 금액, 연료 %) */
+    const val HERO = 64f
+    const val TITLE = 24f
+    const val MAIN = 40f
+    /** 이름·가격·우회처럼 카드의 두 번째로 중요한 줄 */
+    const val LEAD = 30f
     const val BODY = 26f
-    const val SMALL = 20f
+    const val SMALL = 22f
     const val BUTTON = 30f
 }
 
@@ -108,6 +112,11 @@ class Ui(private val context: Context, val p: Palette) {
     private fun rounded(color: Int) = GradientDrawable().apply {
         setColor(color)
         cornerRadius = dp(16).toFloat()
+    }
+
+    /** 남는 세로 공간을 나눠 갖는 빈 칸. 카드가 화면 높이까지 늘어날 때 내용 사이를 벌린다 */
+    fun spacer(): View = View(context).apply {
+        layoutParams = LinearLayout.LayoutParams(1, 0, 1f)
     }
 
     fun gap(heightDp: Int): View = View(context).apply {
