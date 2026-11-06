@@ -30,6 +30,14 @@
 
     <uses-feature android:name="android.hardware.type.automotive" android:required="true" />
 
+    <!-- 내비 앱 찾기(MainActivity.openNavi): Android 11부터 다른 앱을 찾으려면 선언해야 한다 -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.MAIN" />
+            <category android:name="android.intent.category.APP_MAPS" />
+        </intent>
+    </queries>
+
     <application
         android:label="Fuel Mate"
         android:icon="@mipmap/ic_launcher"

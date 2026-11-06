@@ -98,10 +98,17 @@ class MainActivity : Activity() {
         applyPendingModes()
     }
 
-    /** 내비 앱을 연다. 장소 이름 검색은 NaviHelper에 없어 내비 앱이 맡는다(docs/pleos/navihelper-sdk.md) */
+    /**
+     * 내비 앱을 연다. 장소 이름 검색은 NaviHelper에 없어 내비 앱이 맡는다(docs/pleos/navihelper-sdk.md).
+     * 선택자 인텐트(makeMainSelectorActivity)를 그대로 쓰면 떠 있는 내비를 앞으로 가져오지 않고 새 태스크로 하나 더 띄워
+     * "내비게이션을 실행 중입니다"에서 멈춘다(2026-11-06 에뮬레이터). 그래서 지도 앱 패키지만 찾고, 작업 표시줄과 같은 실행 인텐트로 연다.
+     */
     private fun openNavi() {
         val maps = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MAPS)
-        runCatching { startActivity(maps) }.onFailure { Log.w("내비 앱을 열지 못함", it) }
+        val pkg = packageManager.resolveActivity(maps, 0)?.activityInfo?.packageName
+        val launch = pkg?.let { packageManager.getLaunchIntentForPackage(it) }
+        if (launch == null) Log.w("내비 앱 실행 인텐트를 찾지 못함")
+        runCatching { startActivity(launch ?: maps) }.onFailure { Log.w("내비 앱을 열지 못함", it) }
     }
 
     override fun onResume() {

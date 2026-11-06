@@ -120,7 +120,8 @@ CautionPoint(id: String, type: CautionPointType, remainDistance: Int)
 
 ## 이 프로젝트에 중요한 점
 
-- ⚠️ **장소 이름 검색 API가 없다**(NaviHelper 공개 메서드 javap, 2026-11-06). `requestRoute`는 좌표를 받는다. 쓸 수 있는 것은 `getRecentDestinationInfo`·`getBookmarkInfo`(이름·좌표·POI ID. 에뮬레이터에서 최근 3곳이 실제로 왔다, 즐겨찾기 2곳은 이름 또는 좌표가 비어 목록에 안 나왔고 값은 미확인)와, 내비 앱 열기(`Intent.makeMainSelectorActivity(ACTION_MAIN, CATEGORY_APP_MAPS)`, 에뮬레이터 확인)다
+- ⚠️ **장소 이름 검색 API가 없다**(NaviHelper 공개 메서드 javap, 2026-11-06). `requestRoute`는 좌표를 받는다. 쓸 수 있는 것은 `getRecentDestinationInfo`·`getBookmarkInfo`(이름·좌표·POI ID. 에뮬레이터에서 최근 3곳이 실제로 왔다, 즐겨찾기 2곳은 이름 또는 좌표가 비어 목록에 안 나왔고 값은 미확인)와, 내비 앱 열기다
+- ⚠️ 내비 앱을 열 때 선택자 인텐트(`makeMainSelectorActivity(ACTION_MAIN, CATEGORY_APP_MAPS)`)를 그대로 쓰면 떠 있는 내비를 앞으로 가져오지 않고 새 태스크로 하나 더 띄워 "내비게이션을 실행 중입니다"에서 멈춘다. 지도 앱 패키지를 `resolveActivity`로 찾고 `getLaunchIntentForPackage`로 연다(매니페스트 `<queries>` 필요). 부팅 직후·반복·내비 강제 종료 뒤 모두 태스크 1개에 검색창이 뜨는 것을 확인했다(2026-11-06)
 - `requestRoute`·`addWaypoint`를 부르면 내비가 앞으로 나온다. 내비는 `SYSTEM_ALERT_WINDOW`가 있어 허용되고, 일반 앱은 포그라운드 서비스여도 `Background activity launch blocked`로 스스로 앞으로 나올 수 없다(2026-11-06 확인). 사용자가 작업 표시줄 아이콘으로 돌아온다
 - ⚠️ **경로 선형(좌표 목록)을 주는 API가 없다.** 데이터 클래스 32개를 다 봤지만 polyline 형태의 데이터는 없다. 경로 위 위치는 목적지·경유지 좌표, `ratioOnRoute`, 혼잡 구간의 `offset`/`distance`(경로 시작점 기준 거리로 보임) 정도로만 표현된다.
   - 그래서 "경로 12km 지점부터 비"는 그대로는 구현할 수 없다. 대안은 [open-questions.md](open-questions.md)에 정리했다.
