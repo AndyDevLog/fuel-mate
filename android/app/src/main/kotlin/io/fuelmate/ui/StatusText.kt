@@ -29,7 +29,13 @@ object StatusText {
         appendLine("단가: 휘발유 ${"%,.1f".format(s.prices.fuelWonPerL)}원/L(${s.prices.basis(EnergyKind.FUEL)}), " +
             "전기 ${"%,.1f".format(s.prices.electricWonPerKWh)}원/kWh(${s.prices.basis(EnergyKind.ELECTRIC)})")
         appendLine("이번 실행 주행 거리: ${"%.1f".format(s.odometer.meters / 1000)} km")
-        appendLine("위치: ${s.location?.origin?.let { if (it == LocationOrigin.DEMO_TRACK) "데모 경로" else "내비" } ?: "모름"}")
+        appendLine("위치: ${s.location?.origin?.let {
+            when (it) {
+                LocationOrigin.DEMO_TRACK -> "데모 경로"
+                LocationOrigin.NAVI_SIMULATED -> "내비 + 직선 이동(데모)"
+                LocationOrigin.NAVI_HELPER -> "내비"
+            }
+        } ?: "모름"}")
         appendLine()
         appendLine("주유소: ${StationText.summary(s)}")
         StationText.details(s).forEach { appendLine("  $it") }

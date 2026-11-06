@@ -23,7 +23,7 @@ import kotlinx.coroutines.withContext
 
 /**
  * 오피넷 반경 검색(수집 서비스 안에서만 돈다). 언제 찾을지는 :core [StationSearchRule]이 정한다.
- * 지금 위치와 진행 방향 5km 앞에서 반경 5km씩 두 번 찾고 합친다.
+ * 지금 위치와 목적지 쪽 5km 앞에서 반경 5km씩 두 번 찾고 합친다.
  * 오피넷에는 검색 중심 좌표만 보내고, 로그에는 좌표·키를 남기지 않는다.
  */
 class StationSearchSource(
@@ -56,7 +56,8 @@ class StationSearchSource(
 
     private suspend fun search(s: AppState, now: Long): Boolean {
         val here = s.location ?: return false
-        val ahead = StationRecommender.aheadPoint(here.point, here.headingDeg.toDouble(), s.destination)
+        val destination = s.destination ?: return false
+        val ahead = StationRecommender.aheadPoint(here.point, destination)
         val results = withContext(Dispatchers.IO) {
             listOf(here.point, ahead).map { center ->
                 async {
@@ -72,7 +73,7 @@ class StationSearchSource(
         }
         val merged: List<Station> = results.filterNotNull().flatten().distinctBy { it.id }
         Log.i("주유소 ${merged.size}곳 찾음(지금 위치 ${results[0]?.size ?: "실패"}, 앞쪽 ${results[1]?.size ?: "실패"})")
-        dispatch(Action.StationsFound(StationSearch(merged, here.point, now)))
+        dispatch(Action.StationsFound(StationSearch(merged, here.point, now, destination)))
         return true
     }
 

@@ -5,6 +5,7 @@ import io.fuelmate.core.cost.HabitCostEstimator
 import io.fuelmate.core.model.AppState
 import io.fuelmate.core.model.EnergyKind
 import io.fuelmate.core.model.EnergyOrigin
+import io.fuelmate.core.model.LocationOrigin
 import io.fuelmate.core.station.Recommendation
 import io.fuelmate.core.station.Station
 import io.fuelmate.core.station.StationRecommender
@@ -85,6 +86,7 @@ sealed interface ScreenModel {
                 append("${e.kind.label} ${e.percent?.roundToInt() ?: "?"}%")
                 e.amount?.let { append(" · ${"%.1f".format(it)} / ${"%.0f".format(e.capacity ?: 0.0)} ${e.kind.unit}") }
                 if (e.origin == EnergyOrigin.DEMO) append(" (데모)")
+                if (s.location?.origin == LocationOrigin.NAVI_SIMULATED) append(" · 위치 데모(직선 이동)")
             }
             val kind = e?.kind ?: EnergyKind.FUEL
             val priceLine = "단가 ${"%,.0f".format(s.prices.of(kind))}원/${kind.unit} · ${s.prices.basis(kind)}"
@@ -194,6 +196,7 @@ sealed interface ScreenModel {
                 s.energy?.kind == EnergyKind.ELECTRIC -> "충전소 추천은 준비 중이에요"
                 percent != null && percent > StationSearchRule.SEARCH_BELOW_PERCENT -> "연료가 넉넉해요"
                 s.location == null -> "위치를 기다리는 중"
+                s.destination == null -> "내비에 목적지를 넣으면 가는 길 주유소를 찾아요"
                 s.stationSearch == null -> "주유소를 찾는 중"
                 else -> "가는 길에 주유소가 없어요"
             }

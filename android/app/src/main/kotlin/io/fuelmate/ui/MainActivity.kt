@@ -21,6 +21,7 @@ import io.fuelmate.core.cost.ChargeTier
 import io.fuelmate.core.model.AppState
 import io.fuelmate.core.station.Station
 import io.fuelmate.energy.EnergyMode
+import io.fuelmate.location.LocationMode
 import io.fuelmate.service.CollectorService
 import io.fuelmate.vehicle.CarApiAdapter
 import kotlinx.coroutines.Job
@@ -47,6 +48,7 @@ class MainActivity : Activity() {
     private var askedPermissions = false
     /** 실행 인텐트로 받은 에너지 공급원(개발·시연용). 서비스에 연결되면 넘긴다 */
     private var pendingEnergyMode: EnergyMode? = null
+    private var pendingLocationMode: LocationMode? = null
     private var pendingChargeTier: ChargeTier? = null
     private var pendingAddWaypoint = false
 
@@ -101,6 +103,10 @@ class MainActivity : Activity() {
             pendingEnergyMode = runCatching { EnergyMode.valueOf(name) }.getOrNull()
                 ?: null.also { Log.w("모르는 에너지 공급원: $name") }
         }
+        intent?.getStringExtra(EXTRA_LOCATION)?.let { name ->
+            pendingLocationMode = runCatching { LocationMode.valueOf(name) }.getOrNull()
+                ?: null.also { Log.w("모르는 위치 출처: $name") }
+        }
         if (intent?.getStringExtra(EXTRA_WAYPOINT) == "best") pendingAddWaypoint = true
         when (intent?.getStringExtra(EXTRA_SCREEN)) {
             "status" -> showStatus = true
@@ -116,6 +122,8 @@ class MainActivity : Activity() {
         val b = binder ?: return
         pendingEnergyMode?.let { b.setEnergyMode(it) }
         pendingEnergyMode = null
+        pendingLocationMode?.let { b.setLocationMode(it) }
+        pendingLocationMode = null
         pendingChargeTier?.let { b.setChargeTier(it) }
         pendingChargeTier = null
         if (pendingAddWaypoint) b.addRecommendedWaypoint()
@@ -177,6 +185,8 @@ class MainActivity : Activity() {
         const val REQUEST_PERMISSIONS = 1
         /** `--es energy VEHICLE|DEMO_EV|DEMO_FUEL` */
         const val EXTRA_ENERGY = "energy"
+        /** `--es location NAVI|DEMO` */
+        const val EXTRA_LOCATION = "location"
         /** `--es chargeTier SLOW|FAST_30|FAST_50|FAST_100|ULTRA` */
         const val EXTRA_CHARGE_TIER = "chargeTier"
         /** `--es waypoint best`: 지금 추천을 내비 경유지로 넣는다(화면 버튼이 생기기 전 개발·시연용) */

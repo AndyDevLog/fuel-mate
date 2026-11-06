@@ -1,6 +1,6 @@
 # 프로젝트 규칙
 
-Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하는 차량용 앱 "Fuel Mate" 저장소다. 내 차의 연료·배터리·운전 신호를 읽어 주유·충전비를 줄인다. 중심 기능은 진행 방향의 주유·충전소 가운데 "실제 이득"이 있는 곳 추천이고, 운전 습관 비용은 "이번 운행 요약" 한 줄로 보여 준다(docs/pivot-fuel.md 12·13장).
+Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하는 차량용 앱 "Fuel Mate" 저장소다. 내 차의 연료·배터리·운전 신호를 읽어 주유·충전비를 줄인다. 중심 기능은 내비 목적지로 가는 길의 주유·충전소 가운데 "실제 이득"이 있는 곳 추천이고, 운전 습관 비용은 "이번 운행 요약" 한 줄로 보여 준다(docs/pivot-fuel.md 12·13장).
 
 ## 기본
 
@@ -26,7 +26,7 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 - 차량 연동(포그라운드 서비스) → 상태 스토어(`:core`, 순수 Kotlin) → 화면으로 나눈다. 판정·계산은 `:core`에 두고 단위 테스트로 확인한다.
 - 차량 신호 수집과 외부 API 호출은 포그라운드 서비스에만 둔다. 화면은 상태를 구독해서 그리기만 한다.
 - 에너지는 "에너지 비용(원)"으로 일반화하고 연료·전기는 어댑터로 나눈다.
-- 위치 공급원은 인터페이스로 분리한다(NaviHelper / 데모 궤적 재생). 에뮬레이터에서는 NaviHelper 위치가 고정이다.
+- 위치 공급원은 인터페이스로 분리한다(NaviHelper / 데모 궤적 재생). 기본은 NaviHelper이고 추천은 내비 목적지 기준이다(목적지가 없으면 검색·추천하지 않는다). 에뮬레이터에서는 NaviHelper 위치가 고정이라, 달리면 `core/geo/StuckNaviFallback`이 목적지 쪽 직선으로 위치를 움직인다(화면에 "위치 데모" 표시). 데모 궤적은 `--es location DEMO`.
 - 상태가 바뀔 때만 다시 그린다.
 - 구조를 정하거나 바꿀 때는 이유를 짧게 설명하고, 큰 결정은 먼저 확인받는다.
 
@@ -44,7 +44,7 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 - 에뮬레이터: AVD `Pleos_Connect_v2.1.0`, adb 시리얼 `emulator-5554`.
 - 앱은 AAOS **사용자 10**에서 실행된다. 런타임 권한은 `adb shell pm grant --user 10 <패키지> <권한>`으로 준다.
 - `adb install -r`, `adb shell screencap`, `adb logcat -s FuelMate`로 직접 확인한다. Virtual Console(`adb forward tcp:8088 tcp:8088` → `http://127.0.0.1:8088/`) 조작은 사용자가 한다.
-- 빌드: `JAVA_HOME`=Android Studio 내장 JBR, `ANDROID_HOME`=Android SDK. AGP 9.4.0, Gradle 9.6.1.
+- 빌드: `JAVA_HOME`=JDK 21(Android Studio 내장 JBR 또는 Temurin 21), `ANDROID_HOME`=Android SDK. AGP 9.4.0, Gradle 9.6.1.
 - 앱: `android/`에서 `./gradlew :core:test`(판정·계산·스토어 단위 테스트), `./gradlew :app:assembleDebug`, `./gradlew :app:assembleRelease`(R8. 서명 키는 저장소 밖 `~/.android-keys/fuel-mate/keystore.properties`, 사용자가 만든다. 에뮬레이터 시험만 `-PfuelMate.debugSignRelease=true`).
 - 실행: `adb shell am start --user 10 -a android.intent.action.MAIN -c android.intent.category.LAUNCHER -n io.fuelmate/.ui.MainActivity`
 - 연료·배터리·내비 API 시험: `spikes/fuel-probe`(docs/pivot-fuel.md 14장).

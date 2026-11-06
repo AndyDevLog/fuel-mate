@@ -22,6 +22,8 @@ data class StationSearch(
     /** 검색할 때 차가 있던 곳. 다음 검색을 할지(얼마나 움직였나) 정할 때 쓴다 */
     val fromPoint: GeoPoint,
     val timeMs: Long,
+    /** 검색할 때의 목적지. 목적지가 바뀌면 앞쪽 지점이 달라지므로 다시 찾는다 */
+    val destination: GeoPoint? = null,
 )
 
 /**

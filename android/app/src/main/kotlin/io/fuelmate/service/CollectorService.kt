@@ -157,7 +157,7 @@ class CollectorService : Service() {
     }
 
     private fun createLocation(mode: LocationMode): LocationSource = when (mode) {
-        LocationMode.NAVI -> NaviHelperSource(this)
+        LocationMode.NAVI -> NaviHelperSource(this, speedMps = { store.state.value.vehicle.speedMps })
         LocationMode.DEMO -> DemoTrackSource(this, speedMps = { store.state.value.vehicle.speedMps })
     }
 

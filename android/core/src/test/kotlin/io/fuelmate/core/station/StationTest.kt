@@ -131,30 +131,64 @@ class StationTest {
     }
 
     @Test
-    fun `앞쪽 지점 - 목적지가 가까우면 목적지, 멀면 그 방향 5km, 없으면 진행 방향 5km`() {
+    fun `앞쪽 지점 - 목적지가 가까우면 목적지, 멀면 그 방향 5km`() {
         val here = GeoPoint(37.40, 127.10)
         val nearDest = GeoPoint(37.41, 127.10)
-        assertEquals(nearDest, StationRecommender.aheadPoint(here, 90.0, nearDest))
+        assertEquals(nearDest, StationRecommender.aheadPoint(here, nearDest))
         val far = GeoPoint(37.60, 127.10)
-        assertEquals(5_000.0, GeoMath.distanceM(here, StationRecommender.aheadPoint(here, 90.0, far)), 1.0)
-        val east = StationRecommender.aheadPoint(here, 90.0, null)
-        assertEquals(90.0, GeoMath.bearingDeg(here, east), 0.5)
+        assertEquals(5_000.0, GeoMath.distanceM(here, StationRecommender.aheadPoint(here, far)), 1.0)
     }
 
     @Test
-    fun `검색 규칙 - 연료 50% 이하일 때, 처음이거나 3km 움직였거나 15분 지나면 찾는다`() {
+    fun `검색 규칙 - 목적지가 있고 연료 50% 이하일 때, 처음이거나 3km 움직였거나 15분 지나면 찾는다`() {
         fun fix(lat: Double) = Action.LocationFixed(GeoFix(GeoPoint(lat, 127.10), 0f, 0, LocationOrigin.DEMO_TRACK))
         fun fuel(l: Double) = Action.EnergyReading(0, EnergyKind.FUEL, EnergyOrigin.DEMO, l, 60.0)
-        val low = listOf(fix(37.40), fuel(15.0)).fold(AppState(), ::reduce)
+        val dest = GeoPoint(37.60, 127.10)
+        val low = listOf(fix(37.40), fuel(15.0), Action.DestinationChanged(dest)).fold(AppState(), ::reduce)
         assertTrue(StationSearchRule.shouldSearch(low, 0))
         val full = reduce(low, fuel(50.0))
-        assertFalse(StationSearchRule.shouldSearch(reduce(AppState(), fuel(50.0)).let { reduce(it, fix(37.40)) }, 0))
+        assertFalse(StationSearchRule.shouldSearch(listOf(fuel(50.0), fix(37.40), Action.DestinationChanged(dest)).fold(AppState(), ::reduce), 0))
         assertFalse(full.energy!!.percent!! <= StationSearchRule.SEARCH_BELOW_PERCENT)
 
-        val searched = reduce(low, Action.StationsFound(StationSearch(emptyList(), GeoPoint(37.40, 127.10), 0)))
+        val searched = reduce(low, Action.StationsFound(StationSearch(emptyList(), GeoPoint(37.40, 127.10), 0, dest)))
         assertFalse(StationSearchRule.shouldSearch(searched, 60_000))
         assertTrue(StationSearchRule.shouldSearch(searched, 16 * 60_000))
         assertTrue(StationSearchRule.shouldSearch(reduce(searched, fix(37.43)), 60_000))
+    }
+
+    @Test
+    fun `검색 규칙 - 목적지가 없으면 찾지 않고, 목적지가 바뀌면 바로 다시 찾는다`() {
+        val here = GeoPoint(37.40, 127.10)
+        val dest = GeoPoint(37.60, 127.10)
+        val base = listOf(
+            Action.LocationFixed(GeoFix(here, 0f, 0, LocationOrigin.NAVI_HELPER)),
+            Action.EnergyReading(0, EnergyKind.FUEL, EnergyOrigin.DEMO, 15.0, 60.0),
+        ).fold(AppState(), ::reduce)
+        assertFalse(StationSearchRule.shouldSearch(base, 0))
+
+        val searched = listOf(
+            Action.DestinationChanged(dest),
+            Action.StationsFound(StationSearch(emptyList(), here, 0, dest)),
+        ).fold(base, ::reduce)
+        assertFalse(StationSearchRule.shouldSearch(searched, 60_000))
+        // 내비 좌표가 조금 흔들린 정도(약 100m)로는 다시 찾지 않는다
+        assertFalse(StationSearchRule.shouldSearch(reduce(searched, Action.DestinationChanged(GeoPoint(37.601, 127.10))), 60_000))
+        assertTrue(StationSearchRule.shouldSearch(reduce(searched, Action.DestinationChanged(GeoPoint(37.50, 127.20))), 60_000))
+        // 목적지가 사라지면(안내 취소) 찾지 않는다
+        assertFalse(StationSearchRule.shouldSearch(reduce(searched, Action.DestinationChanged(null)), 16 * 60_000))
+    }
+
+    @Test
+    fun `목적지가 없으면 주유소 검색 결과가 있어도 추천하지 않는다`() {
+        val here = GeoPoint(37.40, 127.10)
+        val actions = listOf(
+            Action.LocationFixed(GeoFix(here, 0f, 0, LocationOrigin.NAVI_HELPER)),
+            Action.EnergyReading(0, EnergyKind.FUEL, EnergyOrigin.DEMO, 15.0, 60.0),
+            Action.StationsFound(StationSearch(listOf(st("near", 1900.0, 37.401, 127.100)), here, 0)),
+        )
+        val state = actions.fold(AppState(), ::reduce)
+        assertNull(StationRecommender.recommend(state))
+        assertNotNull(StationRecommender.recommend(reduce(state, Action.DestinationChanged(GeoPoint(37.60, 127.10)))))
     }
 
     @Test
@@ -163,6 +197,7 @@ class StationTest {
         val actions = listOf(
             Action.LocationFixed(GeoFix(here, 0f, 0, LocationOrigin.DEMO_TRACK)),
             Action.EnergyReading(0, EnergyKind.FUEL, EnergyOrigin.DEMO, 15.0, 60.0),
+            Action.DestinationChanged(GeoPoint(37.60, 127.10)),
             Action.StationsFound(StationSearch(listOf(st("near", 1900.0, 37.401, 127.100), st("cheap", 1800.0, 37.42, 127.101)), here, 0)),
         )
         val r = assertNotNull(StationRecommender.recommend(actions.fold(AppState(), ::reduce)))

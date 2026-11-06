@@ -50,7 +50,7 @@ data class ChosenOption(val option: StationOption, val isBest: Boolean, val less
  * 우회 거리는 직선거리 추정이다. 경유지를 넣으면 내비가 실제 우회 거리를 알려 준다(docs/pivot-fuel.md 6장).
  */
 object StationRecommender {
-    /** 진행 방향 앞쪽 지점까지의 거리. 반경 검색(최대 5km)을 이 지점에서 한 번 더 한다 */
+    /** 목적지 쪽 앞쪽 지점까지의 거리. 반경 검색(최대 5km)을 이 지점에서 한 번 더 한다 */
     const val AHEAD_M = 5_000.0
     /** 직선거리 → 도로 거리 보정 */
     const val ROAD_FACTOR = 1.3
@@ -61,13 +61,15 @@ object StationRecommender {
     /** 우회가 이보다 크면 후보에서 뺀다(되돌아가는 곳) */
     const val MAX_DETOUR_M = 6_000.0
 
+    /** 내비에 넣은 목적지 기준으로 추천한다. 목적지가 없으면 "가는 길"을 모르므로 추천하지 않는다 */
     fun recommend(state: AppState): Recommendation? {
+        val destination = state.destination ?: return null
         val search = state.stationSearch ?: return null
         val here = state.location ?: return null
         val energy = state.energy?.takeIf { it.kind == EnergyKind.FUEL } ?: return null
         val capacity = energy.capacity ?: return null
         val amount = energy.amount ?: return null
-        val ahead = aheadPoint(here.point, here.headingDeg.toDouble(), state.destination)
+        val ahead = aheadPoint(here.point, destination)
         return recommend(search.stations, here.point, ahead, fillL = max(0.0, capacity - amount))
     }
 
@@ -93,13 +95,13 @@ object StationRecommender {
         return Recommendation(best, baseline, fillL, options, ahead)
     }
 
-    /** 목적지가 [AHEAD_M]보다 가까우면 목적지, 멀면 목적지 쪽으로 [AHEAD_M], 목적지가 없으면 진행 방향으로 [AHEAD_M] */
-    fun aheadPoint(here: GeoPoint, headingDeg: Double, destination: GeoPoint?): GeoPoint {
-        if (destination != null) {
-            val d = GeoMath.distanceM(here, destination)
-            return if (d <= AHEAD_M) destination else GeoMath.destination(here, GeoMath.bearingDeg(here, destination), AHEAD_M)
-        }
-        return GeoMath.destination(here, headingDeg, AHEAD_M)
+    /**
+     * 목적지가 [AHEAD_M]보다 가까우면 목적지, 멀면 목적지 쪽 직선으로 [AHEAD_M].
+     * NaviHelper에는 경로 선형을 주는 API가 없어 실제 도로를 따라갈 수 없다(docs/pleos/navihelper-sdk.md).
+     */
+    fun aheadPoint(here: GeoPoint, destination: GeoPoint): GeoPoint {
+        val d = GeoMath.distanceM(here, destination)
+        return if (d <= AHEAD_M) destination else GeoMath.destination(here, GeoMath.bearingDeg(here, destination), AHEAD_M)
     }
 }
 
@@ -111,14 +113,19 @@ object StationSearchRule {
     /** 연료가 이보다 많으면 찾지 않는다 */
     const val SEARCH_BELOW_PERCENT = 50f
     const val MOVED_M = 3_000.0
+    /** 목적지가 이만큼 넘게 바뀌면 바로 다시 찾는다 */
+    const val DESTINATION_CHANGED_M = 500.0
     const val STALE_MS = 15 * 60 * 1000L
 
     fun shouldSearch(state: AppState, nowMs: Long): Boolean {
         val here = state.location ?: return false
+        val destination = state.destination ?: return false
         val energy = state.energy?.takeIf { it.kind == EnergyKind.FUEL } ?: return false
         val percent = energy.percent ?: return false
         if (percent > SEARCH_BELOW_PERCENT) return false
         val last = state.stationSearch ?: return true
+        val searchedFor = last.destination
+        if (searchedFor == null || GeoMath.distanceM(searchedFor, destination) >= DESTINATION_CHANGED_M) return true
         return GeoMath.distanceM(last.fromPoint, here.point) >= MOVED_M || nowMs - last.timeMs >= STALE_MS
     }
 }
