@@ -125,7 +125,7 @@ sealed interface ScreenModel {
          */
         private fun chosenCard(w: WaypointState, r: Recommendation?, waypointLine: String?): RecCard {
             val title = if (w.asDestination) "안내 중인 주유소" else "경유 중인 주유소"
-            val c = r?.chosen(w.stationId)
+            val c = r?.chosen(w.stationId, w.detourM)
             if (r == null || c == null) {
                 // 다시 찾은 뒤 후보에서 빠졌거나 아직 검색 전: 이름과 내비 상태만
                 return RecCard(
@@ -137,14 +137,14 @@ sealed interface ScreenModel {
                 )
             }
             val o = c.option
-            // 이득 계산과 같은 추정 우회를 쓴다. 내비가 준 실제 우회는 값이 이상할 때가 있어(넣기 전·후 거리가 같게 옴) 내비 줄에만 보인다
-            val detour = "우회 약 ${km(o.detourM)}"
+            val detour = if (c.actualDetour) "실제 우회 ${km(o.detourM)}" else "우회 약 ${km(o.detourM)}"
             val gainLine = when {
                 o.gainWon >= 10 -> "가까운 곳보다 ${HabitText.won(o.gainWon)} 이득"
                 o.gainWon <= -10 -> "가까운 곳보다 ${HabitText.won(-o.gainWon)} 더 들어요"
                 else -> "가까운 곳과 비슷해요"
             }
-            val compareLine = if (!c.isBest && c.lessThanBestWon >= 10)
+            // 고른 곳이 실제 우회가 되면 추정 우회인 추천과 맞비교할 수 없어 보이지 않는다
+            val compareLine = if (!c.isBest && !c.actualDetour && c.lessThanBestWon >= 10)
                 "추천 ${shortName(r.best.station.name, false)}보다 ${HabitText.won(c.lessThanBestWon)} 덜 아껴요"
             else null
             return RecCard(

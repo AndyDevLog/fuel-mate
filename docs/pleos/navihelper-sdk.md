@@ -112,7 +112,8 @@ CautionPoint(id: String, type: CautionPointType, remainDistance: Int)
 
 - ⚠️ `RouteStateInfo.isRouting`은 **안내 중에도 false**로 왔다(주유소로 안내 중, `naviMode=ROUTE_GUIDING`). 안내 중인지는 `naviMode`(`NOT_WORKING`, `SAFE_GUIDING`(경로 없는 안전운전), `ROUTE_GUIDING`, `SIMULATION_GUIDING`)로 본다
 - 경유지를 넣으면 잠깐 `SAFE_GUIDING`이 됐다가 다시 `ROUTE_GUIDING`이 된다. 내비 앱이 앞으로 나온다
-- 경유지를 넣기 전 남은 거리: `onDrivingInfo`는 넣기 전에는 오지 않았다. `getDestinationInfo()` → `DestinationInfo.remainDistance`는 **10000**으로 왔는데, 경유지를 넣은 뒤 `WaypointChangedInfo.routeStartInfo.distance`는 4800이라 실제 거리로 보기 어렵다(확인 필요, docs/pivot-fuel.md 11장 9번). 앱은 말이 안 되는 우회 값(음수·20km 초과)이면 "실제 우회 거리는 확인하지 못함"으로 표시한다
+- 경유지를 넣기 전 남은 거리: `onDrivingInfo`는 넣기 전에는 오지 않았고, `getDestinationInfo()` → `DestinationInfo.remainDistance`가 경로 거리와 맞게 왔다(2,300m, 14,000m)
+- ⚠️ `WaypointChangedInfo.routeStartInfo.distance`는 **첫 경유지까지 거리**다(2026-11-06 확인). 2,300m 경로에 경유지를 넣자 이 값은 4,800m, `onDrivingInfo`는 목적지 9,200m·경유지 [4,800]m, `remainDistance`는 9,200m였다. 넣은 뒤의 목적지 거리는 `onDrivingInfo`·`remainDistance`로 받고, 실제 우회 = 넣은 뒤 목적지 거리 − 넣기 전 목적지 거리(여기서는 6,900m). 예전에 본 "10000 → 4800"도 이 값을 잘못 비교한 것이다. 앱은 말이 안 되는 우회 값(음수·20km 초과)이면 "실제 우회 거리는 확인하지 못함"으로 표시한다
 - 이미 경유지로 들어간 곳을 다시 넣으면 `onWaypointChanged`가 오지 않았다
 - 목적지 도착 콜백은 `onDestinationArrived(DestinationArrivedInfo)`, 경유지 도착은 `onWayPointArrived(WaypointArrivedInfo)`다(javap. 위 표의 이름에는 인자가 빠져 있다)
 - `requestRoute(RouteInfo(...))`(주유소 좌표·이름만, POI ID 없음)로 안내가 시작되고 음성 안내가 나온다

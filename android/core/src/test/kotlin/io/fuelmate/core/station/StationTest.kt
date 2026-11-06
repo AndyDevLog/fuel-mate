@@ -119,6 +119,32 @@ class StationTest {
     }
 
     @Test
+    fun `내비 실제 우회가 오면 고른 곳의 이득을 그 값으로 다시 계산한다`() {
+        val here = GeoPoint(37.40, 127.10)
+        val ahead = GeoMath.destination(here, 0.0, 5_000.0)
+        val near = st("near", 1900.0, 37.401, 127.100)
+        val cheap = st("cheap", 1800.0, 37.42, 127.101)
+        val r = assertNotNull(StationRecommender.recommend(listOf(near, cheap), here, ahead, fillL = 45.0))
+
+        val estimated = assertNotNull(r.chosen("cheap"))
+        assertFalse(estimated.actualDetour)
+        assertEquals(r.best.gainWon, estimated.option.gainWon)
+
+        // 100원 × 45L = 4,500원 − (6,900m − 기준 우회) × 0.09L/km × 1,900원
+        val actual = assertNotNull(r.chosen("cheap", 6_900.0))
+        assertTrue(actual.actualDetour)
+        assertEquals(6_900.0, actual.option.detourM)
+        val expected = 4_500.0 - (6_900.0 - r.baseline.detourM) / 1000 * 0.09 * 1900.0
+        assertEquals(expected, actual.option.gainWon, 0.001)
+        assertTrue(actual.option.gainWon < estimated.option.gainWon)
+
+        // 많이 돌면 손해가 될 수 있다
+        assertTrue(assertNotNull(r.chosen("cheap", 40_000.0)).option.gainWon < 0)
+        // 실제 우회가 추정보다 작으면 이득이 커진다
+        assertTrue(assertNotNull(r.chosen("near", 0.0)).option.gainWon >= 0.0)
+    }
+
+    @Test
     fun `후보가 5곳보다 많아도 화면 목록은 5곳, 경유지 비교는 모든 후보에서 찾는다`() {
         val here = GeoPoint(37.40, 127.10)
         val ahead = GeoMath.destination(here, 0.0, 5_000.0)
