@@ -6,6 +6,9 @@ import io.fuelmate.core.model.AppState
 import io.fuelmate.core.model.EnergyKind
 import io.fuelmate.core.model.EnergyOrigin
 import io.fuelmate.core.model.LocationOrigin
+import io.fuelmate.core.model.PlaceKind
+import io.fuelmate.core.model.SavedPlace
+import io.fuelmate.core.model.SavedPlaces
 import io.fuelmate.core.station.Recommendation
 import io.fuelmate.core.station.Station
 import io.fuelmate.core.station.StationRecommender
@@ -31,10 +34,17 @@ sealed interface ScreenModel {
     /** 정차 중: 추천 카드, 이번 운행 요약, 계산 방법 */
     data class Parked(
         val fuelLine: String,
+        /** 목적지가 없을 때의 첫 화면. 있으면 [rec] 대신 보인다 */
+        val start: StartCard?,
         val rec: RecCard,
         val trip: TripCard?,
         val priceLine: String,
     ) : ScreenModel
+
+    /** 첫 화면: 앱 소개 + 목적지 고르기. 정차 중에만 보인다 */
+    data class StartCard(val places: List<PlaceRow>)
+
+    data class PlaceRow(val place: SavedPlace, val line: String)
 
     data class RecCard(
         val title: String,
@@ -90,7 +100,23 @@ sealed interface ScreenModel {
             }
             val kind = e?.kind ?: EnergyKind.FUEL
             val priceLine = "단가 ${"%,.0f".format(s.prices.of(kind))}원/${kind.unit} · ${s.prices.basis(kind)}"
-            return Parked(fuelLine, recCard(s), tripCard(s), priceLine)
+            val start = startCard(s)
+            return Parked(fuelLine, start, if (start == null) recCard(s) else RecCard(title = "", message = null), tripCard(s), priceLine)
+        }
+
+        /** 목적지·경유지가 없고 연료차일 때(전기차는 충전소 추천이 준비 중이라 그 안내를 보인다) */
+        private fun startCard(s: AppState): StartCard? {
+            if (s.destination != null || s.waypoint != null || s.energy?.kind == EnergyKind.ELECTRIC) return null
+            val rows = SavedPlaces.forStartScreen(s.bookmarks, s.recents).map {
+                val kind = when (it.kind) {
+                    PlaceKind.HOME -> "집"
+                    PlaceKind.OFFICE -> "회사"
+                    PlaceKind.BOOKMARK -> "즐겨찾기"
+                    PlaceKind.RECENT -> "최근"
+                }
+                PlaceRow(it, "$kind · ${it.name}")
+            }
+            return StartCard(rows)
         }
 
         private fun recCard(s: AppState): RecCard {

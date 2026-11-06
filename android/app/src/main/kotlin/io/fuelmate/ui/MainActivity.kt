@@ -71,7 +71,7 @@ class MainActivity : Activity() {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         val ui = Ui(this, Palette.of(this))
         val add: (Station) -> Unit = { s -> binder?.addWaypoint(s) }
-        parked = ParkedScreen(ui, add)
+        parked = ParkedScreen(ui, add, onOpenNavi = ::openNavi, onStartRoute = { place -> binder?.startRoute(place) })
         driving = DrivingScreen(ui, add)
         status = ui.text(TextSize.SMALL).apply {
             setBackgroundColor(ui.p.background)
@@ -96,6 +96,17 @@ class MainActivity : Activity() {
         super.onNewIntent(intent)
         readModes(intent)
         applyPendingModes()
+    }
+
+    /** 내비 앱을 연다. 장소 이름 검색은 NaviHelper에 없어 내비 앱이 맡는다(docs/pleos/navihelper-sdk.md) */
+    private fun openNavi() {
+        val maps = Intent.makeMainSelectorActivity(Intent.ACTION_MAIN, Intent.CATEGORY_APP_MAPS)
+        runCatching { startActivity(maps) }.onFailure { Log.w("내비 앱을 열지 못함", it) }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        binder?.refreshPlaces()
     }
 
     private fun readModes(intent: Intent?) {

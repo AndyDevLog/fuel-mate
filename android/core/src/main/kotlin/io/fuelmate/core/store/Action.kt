@@ -8,6 +8,7 @@ import io.fuelmate.core.model.Gear
 import io.fuelmate.core.model.GeoFix
 import io.fuelmate.core.model.GeoPoint
 import io.fuelmate.core.model.Trip
+import io.fuelmate.core.model.SavedPlace
 import io.fuelmate.core.station.StationSearch
 import io.fuelmate.core.station.WaypointState
 
@@ -43,6 +44,8 @@ sealed interface Action {
     // 주유소 추천 (오피넷 반경 검색, 내비 경유지)
     data class StationsFound(val search: StationSearch) : Action
     data class WaypointSet(val waypoint: WaypointState?) : Action
+    data class BookmarksLoaded(val places: List<SavedPlace>) : Action
+    data class RecentsLoaded(val places: List<SavedPlace>) : Action
 
     // 운행 기록 (앱이 차 안 저장소에서 읽어 되돌린다)
     data class TripsRestored(val trips: List<Trip>) : Action

@@ -32,6 +32,9 @@ data class AppState(
     val stationSearch: StationSearch? = null,
     /** 내비에 넣은 주유소와 실제 우회 거리 */
     val waypoint: WaypointState? = null,
+    /** 내비의 즐겨찾기·최근 목적지. 메모리에만 둔다(SavedPlace) */
+    val bookmarks: List<SavedPlace> = emptyList(),
+    val recents: List<SavedPlace> = emptyList(),
     /** 운전 사건 판정용 내부 상태. 화면은 쓰지 않는다 */
     val driveTracker: DriveTracker = DriveTracker(),
 ) {

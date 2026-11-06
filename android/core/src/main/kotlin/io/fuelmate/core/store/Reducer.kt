@@ -36,6 +36,8 @@ fun reduce(state: AppState, action: Action): AppState = when (action) {
 
     is Action.StationsFound -> state.copy(stationSearch = action.search)
     is Action.WaypointSet -> state.copy(waypoint = action.waypoint)
+    is Action.BookmarksLoaded -> state.copy(bookmarks = action.places)
+    is Action.RecentsLoaded -> state.copy(recents = action.places)
 
     is Action.TripsRestored -> state.copy(trips = action.trips.take(AppState.MAX_TRIPS))
 
