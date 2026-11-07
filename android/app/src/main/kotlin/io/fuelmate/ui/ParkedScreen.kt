@@ -83,20 +83,22 @@ class ParkedScreen(
         recButton.setOnClickListener { station?.let(onAddWaypoint) }
 
         startCard.apply {
+            // 그림이 남는 높이를 모두 갖고, 조작은 손이 닿기 쉬운 아래쪽에 모은다. [어디로 가세요?]는 바로 가기 수와 상관없이 맨 아래에 있다
+            addView(RouteIntroView(context, ui.p), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(ui.gap(16))
             addView(ui.text(TextSize.MAIN, ui.p.text, bold = true).apply { text = "가는 길에 실제로 이득인 주유소를 찾아 드려요" })
-            addView(ui.gap(12))
+            addView(ui.gap(8))
             addView(ui.text(TextSize.LEAD, ui.p.subtext).apply { text = "돌아가는 기름값까지 뺀 금액으로 골라요" })
-            addView(ui.spacer())
+            addView(startDivider)
+            addView(startPlacesTitle)
+            addView(startPlaces)
+            addView(ui.gap(20))
             addView(
                 ui.button("어디로 가세요?", minHeightDp = BIG_BUTTON_DP).apply { setOnClickListener { onOpenNavi() } },
                 LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
             )
             addView(ui.gap(12))
             addView(ui.text(TextSize.SMALL, ui.p.subtext).apply { text = "내비에서 목적지를 검색해요. 안내가 시작된 뒤 이 앱을 다시 열면 추천이 보여요." })
-            addView(ui.spacer())
-            addView(startDivider)
-            addView(startPlacesTitle)
-            addView(startPlaces)
         }
 
         recCard.apply {
