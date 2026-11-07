@@ -64,6 +64,10 @@ sealed interface ScreenModel {
         /** 이름 · 가격 · 우회 */
         val placeLine: String? = null,
         val gainPositive: Boolean = false,
+        /** 이득이 있을 때 금액이 올라가는 연출의 끝값. 이득이 없으면 null(그림도 숨김). 끝난 뒤에는 [gainLine]을 그대로 보인다 */
+        val gainWon: Double? = null,
+        /** 이 주유소가 바뀌면 연출을 다시 재생한다 */
+        val gainStationId: String? = null,
         val basisLine: String? = null,
         /** 경유지로 고른 곳이 추천과 다를 때: 추천과 비교한 한 줄 */
         val compareLine: String? = null,
@@ -158,6 +162,8 @@ sealed interface ScreenModel {
                 gainLine = if (r.worthDetour) "${HabitText.won(r.best.gainWon)} 이득" else "가까운 곳에서 넣어도 차이가 작아요",
                 placeLine = "${shortName(r.best.station.name, false)} · ${price(r.best.station.priceWonPerL)}/L · 우회 약 ${km(r.best.detourM)}",
                 gainPositive = r.worthDetour,
+                gainWon = r.best.gainWon.takeIf { r.worthDetour },
+                gainStationId = r.best.station.id.takeIf { r.worthDetour },
                 basisLine = basis(r),
                 station = r.best.station,
                 others = others(r, exclude = r.best.station.id),
@@ -198,6 +204,8 @@ sealed interface ScreenModel {
                 gainLine = gainLine,
                 placeLine = "${shortName(o.station.name, false)} · ${price(o.station.priceWonPerL)}/L · $detour",
                 gainPositive = o.gainWon >= 10,
+                gainWon = o.gainWon.takeIf { it >= 10 },
+                gainStationId = o.station.id.takeIf { o.gainWon >= 10 },
                 basisLine = basis(r),
                 compareLine = compareLine,
                 station = null,

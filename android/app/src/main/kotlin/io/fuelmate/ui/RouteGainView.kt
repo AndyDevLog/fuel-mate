@@ -14,18 +14,42 @@ import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
 import android.view.animation.LinearInterpolator
 import android.view.animation.OvershootInterpolator
+import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.min
+import kotlin.math.sin
 
 /**
- * 첫 화면의 그림: 내 차가 경로를 따라 가다가, 지나친 주유소 대신 이득인 곳에 닿는다.
- * 금액은 넣지 않는다. 목적지를 넣기 전이라 숫자를 보이면 실제 값으로 오해할 수 있다.
+ * 첫 화면과 추천 카드의 그림: 내 차가 경로를 따라 가다가, 지나친 주유소 대신 이득인 곳에 닿는다. 실제 지도가 아니라 설명 그림이다.
+ * 첫 화면은 목적지를 넣기 전이라 숫자를 보이면 실제 값으로 오해할 수 있어 [chipText]가 "이득"뿐이고, 추천 카드는 실제 금액을 쓴다.
  *
  * 화면에 보일 때 한 번만 재생하고 마지막 장면에서 멈춘다. 멈춘 뒤에는 다시 그리지 않는다.
  * 주행 화면으로 바뀌거나 내비가 앞으로 나오면 바로 멈춘다(UI Design Guide: 운전 중 시선을 빼앗는 애니메이션 금지).
  * 상태 갱신과 무관하다: 뷰를 새로 만들지 않으므로 속도·위치가 바뀌어도 다시 재생되지 않는다.
  */
-class RouteIntroView(context: Context, private val p: Palette) : View(context) {
+class RouteGainView(
+    context: Context,
+    private val p: Palette,
+    durationMs: Long,
+) : View(context) {
+
+    /** 이득인 핀 위에 붙는 글자 */
+    var chipText: String = "이득"
+        set(value) {
+            if (field == value) return
+            field = value
+            invalidate()
+        }
+
+    /** 재생되는 동안 매 장면마다 불린다. 금액 숫자를 그림과 같은 시계로 맞춘다 */
+    var onFrame: (() -> Unit)? = null
+
+    /** 금액이 올라간 정도(0~1). 멈춰 있으면 1 */
+    val countUp: Float get() = drive.getInterpolation(phase(progress, 0.08f, 0.88f))
+
+    /** 차가 도착한 순간 금액을 한 번 키울 비율(0이면 원래 크기) */
+    val pulse: Float get() = sin(PI.toFloat() * phase(progress, 0.84f, 1f))
+
 
     private val road = Path()
     private val roadSegment = Path()
@@ -62,11 +86,12 @@ class RouteIntroView(context: Context, private val p: Palette) : View(context) {
     private var shown = false
 
     private val animator = ValueAnimator.ofFloat(0f, 1f).apply {
-        duration = DURATION_MS
+        duration = durationMs
         interpolator = LinearInterpolator()
         addUpdateListener {
             progress = it.animatedValue as Float
             invalidate()
+            onFrame?.invoke()
         }
     }
 
@@ -133,12 +158,22 @@ class RouteIntroView(context: Context, private val p: Palette) : View(context) {
         if (isVisible == shown) return
         shown = isVisible
         if (isVisible) {
-            progress = 0f
-            animator.start()
+            play()
         } else {
             animator.cancel()
             progress = 1f
+            onFrame?.invoke()
         }
+    }
+
+    /** 보이는 중이면 처음부터 한 번 더 재생한다(추천 주유소가 바뀌었을 때) */
+    fun replay() {
+        if (shown) play()
+    }
+
+    private fun play() {
+        progress = 0f
+        animator.start()
     }
 
     override fun onDetachedFromWindow() {
@@ -228,14 +263,14 @@ class RouteIntroView(context: Context, private val p: Palette) : View(context) {
         val alpha = min(1f, appear * 2f)
         val fm = label.fontMetrics
         val textHeight = fm.descent - fm.ascent
-        val halfWidth = label.measureText(CHIP_TEXT) / 2f + pinR * 0.5f
+        val halfWidth = label.measureText(chipText) / 2f + pinR * 0.5f
         val height = textHeight + pinR * 0.3f
         val bottom = pinTop - pinR * 0.25f + (1f - alpha) * pinR * 0.5f
         rect.set(x - halfWidth, bottom - height, x + halfWidth, bottom)
         fill.color = withAlpha(p.gain, alpha)
         canvas.drawRoundRect(rect, height / 2f, height / 2f, fill)
         label.alpha = (alpha * 255).toInt()
-        canvas.drawText(CHIP_TEXT, x, rect.centerY() - (fm.ascent + fm.descent) / 2f, label)
+        canvas.drawText(chipText, x, rect.centerY() - (fm.ascent + fm.descent) / 2f, label)
     }
 
     private fun drawPin(canvas: Canvas, at: Float, scale: Float, color: Int) {
@@ -289,12 +324,10 @@ class RouteIntroView(context: Context, private val p: Palette) : View(context) {
         Color.argb((alpha.coerceIn(0f, 1f) * 255).toInt(), Color.red(color), Color.green(color), Color.blue(color))
 
     private companion object {
-        const val DURATION_MS = 3_600L
-        const val MIN_HEIGHT_DP = 240
+        const val MIN_HEIGHT_DP = 180
         /** 경로 위 위치(0~1). 차는 앞의 두 곳을 지나 [STOP_BEST]에서 멈춘다 */
         const val STOP_NEAR = 0.20f
         const val STOP_MIDDLE = 0.46f
         const val STOP_BEST = 0.74f
-        const val CHIP_TEXT = "이득"
     }
 }

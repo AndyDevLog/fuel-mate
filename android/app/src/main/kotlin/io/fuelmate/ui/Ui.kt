@@ -56,7 +56,9 @@ data class Palette(
 object TextSize {
     const val DRIVE_MAIN = 48f
     const val DRIVE_SUB = 30f
-    /** 정차 카드에서 가장 먼저 읽을 값(이득 금액, 연료 %) */
+    /** 추천 카드의 이득 금액. 화면에서 가장 크다 */
+    const val GAIN = 76f
+    /** 정차 카드에서 먼저 읽을 값(연료 %) */
     const val HERO = 64f
     const val TITLE = 24f
     const val MAIN = 40f

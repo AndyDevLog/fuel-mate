@@ -9,6 +9,7 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import io.fuelmate.core.model.SavedPlace
 import io.fuelmate.core.station.Station
+import kotlin.math.max
 
 /**
  * 정차 화면: 왼쪽에 첫 화면 또는 추천 카드(가장 크게), 오른쪽에 연료·단가와 운행 요약. 탐색·목록·펼치기는 정차 중에만 있다.
@@ -32,7 +33,10 @@ class ParkedScreen(
     private val recCard = ui.card()
     private val recTitle = ui.text(TextSize.TITLE, ui.p.subtext, bold = true)
     private val recMessage = ui.text(TextSize.MAIN, ui.p.text)
-    private val recGain = ui.text(TextSize.HERO, ui.p.gain, bold = true)
+    private val recGain = ui.text(TextSize.GAIN, ui.p.gain, bold = true)
+    private val recScene = RouteGainView(recCard.context, ui.p, GAIN_SCENE_MS)
+    private val recSpacer = ui.spacer()
+    private var scenePlace: String? = null
     private val recPlace = ui.text(TextSize.LEAD, ui.p.text, bold = true)
     private val recBasis = ui.text(TextSize.SMALL, ui.p.subtext)
     private val recCompare = ui.text(TextSize.BODY, ui.p.text)
@@ -81,10 +85,11 @@ class ParkedScreen(
 
     init {
         recButton.setOnClickListener { station?.let(onAddWaypoint) }
+        recScene.onFrame = ::showGain
 
         startCard.apply {
             // 그림이 남는 높이를 모두 갖고, 조작은 손이 닿기 쉬운 아래쪽에 모은다. [어디로 가세요?]는 바로 가기 수와 상관없이 맨 아래에 있다
-            addView(RouteIntroView(context, ui.p), LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(RouteGainView(context, ui.p, START_SCENE_MS).apply { minimumHeight = ui.dp(240) }, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
             addView(ui.gap(16))
             addView(ui.text(TextSize.MAIN, ui.p.text, bold = true).apply { text = "가는 길에 실제로 이득인 주유소를 찾아 드려요" })
             addView(ui.gap(8))
@@ -111,14 +116,16 @@ class ParkedScreen(
             addView(ui.gap(4))
             addView(recBasis)
             addView(recCompare)
-            addView(ui.gap(32))
-            addView(recButton, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-            addView(ui.gap(12))
-            addView(waypoint)
-            addView(ui.spacer())
+            // 그림이 남는 높이를 갖고, 그림이 없을 때(이득 없음·안내 문구)는 빈 칸이 대신한다. 큰 버튼은 손이 닿기 쉬운 맨 아래에 있다
+            addView(recScene, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+            addView(recSpacer)
             addView(othersDivider)
             addView(othersHeader)
             addView(others)
+            addView(ui.gap(20))
+            addView(recButton, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+            addView(ui.gap(12))
+            addView(waypoint)
         }
 
         val fuelCard = ui.card().apply {
@@ -228,6 +235,35 @@ class ParkedScreen(
         }
     }
 
+    /** 그림은 이득이 있을 때만 보인다. 뷰가 다시 보일 때와 주유소가 바뀔 때만 재생되고, 금액만 바뀌면 다시 재생하지 않는다 */
+    private fun renderScene(r: ScreenModel.RecCard) {
+        val has = r.gainWon != null
+        recScene.chipText = r.gainLine ?: ""
+        val visible = if (has) View.VISIBLE else View.GONE
+        val wasVisible = recScene.visibility == View.VISIBLE
+        if (recScene.visibility != visible) recScene.visibility = visible
+        recSpacer.visibility = if (has) View.GONE else View.VISIBLE
+        val place = r.gainStationId
+        if (has && wasVisible && scenePlace != null && place != scenePlace) recScene.replay()
+        if (has) scenePlace = place
+        showGain()
+    }
+
+    /** 재생 중이면 올라가는 금액을, 멈춰 있으면 [ScreenModel.RecCard.gainLine]을 그대로 보인다 */
+    private fun showGain() {
+        val r = last?.rec ?: return
+        val won = r.gainWon
+        val up = recScene.countUp
+        // 시작 값이 "0원", "10원 미만"으로 보이지 않게 10원부터 올린다
+        recGain.show(if (won != null && up < 1f) "${HabitText.won(max(10.0, won * up))} 이득" else r.gainLine)
+        val scale = if (won != null) 1f + 0.08f * recScene.pulse else 1f
+        // 글자 왼쪽을 기준으로 커져 옆으로 밀려 보이지 않게 한다
+        recGain.pivotX = 0f
+        recGain.pivotY = recGain.height / 2f
+        recGain.scaleX = scale
+        recGain.scaleY = scale
+    }
+
     fun render(m: ScreenModel.Parked) {
         last = m
         renderFuel(m.fuel)
@@ -242,10 +278,10 @@ class ParkedScreen(
         recTitle.show(r.title)
         recMessage.show(r.message)
         recPlace.show(r.placeLine)
-        recGain.show(r.gainLine)
         recGain.setTextColor(if (r.gainPositive) ui.p.gain else ui.p.text)
         // 금액이 아닌 문장("가까운 곳에서 넣어도 차이가 작아요")은 줄이 넘치지 않게 작게
-        recGain.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (r.gainPositive) TextSize.HERO else TextSize.MAIN)
+        recGain.setTextSize(TypedValue.COMPLEX_UNIT_SP, if (r.gainPositive) TextSize.GAIN else TextSize.MAIN)
+        renderScene(r)
         recBasis.show(r.basisLine)
         recCompare.show(r.compareLine)
         recButton.visibility = if (r.station != null) View.VISIBLE else View.GONE
@@ -281,6 +317,9 @@ class ParkedScreen(
     }
 
     private companion object {
+        const val START_SCENE_MS = 3_600L
+        /** 금액을 빨리 읽어야 해서 첫 화면보다 짧다(UI Design Guide: 1~2초 안에 파악) */
+        const val GAIN_SCENE_MS = 2_600L
         const val GUTTER_DP = 24
         const val BIG_BUTTON_DP = 120
         const val ROW_BUTTON_DP = 72
