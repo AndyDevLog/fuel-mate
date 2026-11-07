@@ -40,11 +40,11 @@ class ParkedScreen(
     private val recPlace = ui.text(TextSize.LEAD, ui.p.text, bold = true)
     private val recBasis = ui.text(TextSize.SMALL, ui.p.subtext)
     private val recCompare = ui.text(TextSize.BODY, ui.p.text)
-    private val recButton = ui.button("경유지 추가", minHeightDp = BIG_BUTTON_DP)
+    private val recButton = ui.button("여기 들르기", minHeightDp = BIG_BUTTON_DP)
     private val waypoint = ui.text(TextSize.BODY, ui.p.text)
     private val othersDivider = ui.divider()
     private val othersHeader = ui.row().also { row ->
-        addColumns(row, "다른 곳", "가격", "우회", "이득", ui.p.subtext, TextSize.SMALL, bold = true)
+        addColumns(row, "대신 들를 수 있는 곳", "가격", "우회", "이득", ui.p.subtext, TextSize.SMALL, bold = true)
         // 아래 줄의 [경유지] 버튼 자리만큼 비워 열을 맞춘다
         row.addView(View(row.context), LinearLayout.LayoutParams(ui.dp(BUTTON_COLUMN_DP), 1))
     }
@@ -285,6 +285,7 @@ class ParkedScreen(
         recBasis.show(r.basisLine)
         recCompare.show(r.compareLine)
         recButton.visibility = if (r.station != null) View.VISIBLE else View.GONE
+        if (recButton.text.toString() != r.buttonLabel) recButton.text = r.buttonLabel
         waypoint.show(r.waypointLine)
         val hasOthers = r.others.isNotEmpty()
         othersDivider.visibility = if (hasOthers) View.VISIBLE else View.GONE

@@ -71,11 +71,16 @@ sealed interface ScreenModel {
         val basisLine: String? = null,
         /** 경유지로 고른 곳이 추천과 다를 때: 추천과 비교한 한 줄 */
         val compareLine: String? = null,
-        /** [경유지 추가] 큰 버튼이 넣을 곳. 이미 경유지가 있으면 null(버튼 숨김) */
+        /** 큰 버튼("한강에너지 들르기")이 넣을 곳. 이미 경유지가 있으면 null(버튼 숨김) */
         val station: Station? = null,
         val others: List<OtherOption> = emptyList(),
-        /** 다른 곳 표의 버튼 글자. 경유지가 들어간 뒤에는 "바꾸기"(앞의 경유지를 빼고 넣는다) */
-        val othersAction: String = "경유지",
+        /** 큰 버튼 글자. 들르는 곳이 하나뿐이라는 게 보이게 주유소 이름을 넣는다 */
+        val buttonLabel: String = "여기 들르기",
+        /**
+         * "대신 들를 수 있는 곳" 표의 버튼 글자. 추천 대신 그곳 한 곳만 들른다는 뜻으로 "여기로",
+         * 경유지가 들어간 뒤에는 "바꾸기"(앞의 경유지를 빼고 넣는다)
+         */
+        val othersAction: String = "여기로",
         val waypointLine: String? = null,
     )
 
@@ -168,13 +173,14 @@ sealed interface ScreenModel {
                 gainStationId = r.best.station.id.takeIf { r.worthDetour },
                 basisLine = basis(r),
                 station = r.best.station,
+                buttonLabel = visitLabel(r.best.station.name),
                 others = others(r, exclude = r.best.station.id),
             )
         }
 
         /**
          * 경유지를 넣은 뒤: 카드는 고른 곳 기준. 추천과 다르면 추천보다 얼마나 덜 아끼는지 한 줄 붙이고, 추천은 "다른 곳"으로 내린다.
-         * 경유지를 또 넣으면 내비에 경유지가 늘어나므로 큰 [경유지 추가] 버튼은 숨긴다.
+         * 경유지를 또 넣으면 내비에 경유지가 늘어나므로 큰 버튼은 숨기고, 다른 곳은 [바꾸기]로 바꾼다.
          */
         private fun chosenCard(w: WaypointState, r: Recommendation?, waypointLine: String?): RecCard {
             val title = if (w.asDestination) "안내 중인 주유소" else "경유 중인 주유소"
@@ -212,7 +218,7 @@ sealed interface ScreenModel {
                 compareLine = compareLine,
                 station = null,
                 others = others(r, exclude = o.station.id),
-                othersAction = if (w.added && !w.asDestination) "바꾸기" else "경유지",
+                othersAction = if (w.added && !w.asDestination) "바꾸기" else "여기로",
                 waypointLine = waypointLine,
             )
         }
@@ -257,6 +263,13 @@ sealed interface ScreenModel {
                 else -> "가는 길에 주유소가 없어요"
             }
         }
+
+        /** 이름이 버튼에 들어갈 만큼 짧으면 "한강에너지 들르기", 길면 "여기 들르기" */
+        private fun visitLabel(name: String): String {
+            val n = shortName(name, false)
+            return if (n.length <= VISIT_NAME_MAX) "$n 들르기" else "여기 들르기"
+        }
+        private const val VISIT_NAME_MAX = 12
 
         private fun price(won: Double) = "${"%,d".format(won.roundToInt())}원"
         private fun km(m: Double) = "${"%.1f".format(m / 1000)}km"
