@@ -74,6 +74,8 @@ sealed interface ScreenModel {
         /** [경유지 추가] 큰 버튼이 넣을 곳. 이미 경유지가 있으면 null(버튼 숨김) */
         val station: Station? = null,
         val others: List<OtherOption> = emptyList(),
+        /** 다른 곳 표의 버튼 글자. 경유지가 들어간 뒤에는 "바꾸기"(앞의 경유지를 빼고 넣는다) */
+        val othersAction: String = "경유지",
         val waypointLine: String? = null,
     )
 
@@ -210,6 +212,7 @@ sealed interface ScreenModel {
                 compareLine = compareLine,
                 station = null,
                 others = others(r, exclude = o.station.id),
+                othersAction = if (w.added && !w.asDestination) "바꾸기" else "경유지",
                 waypointLine = waypointLine,
             )
         }

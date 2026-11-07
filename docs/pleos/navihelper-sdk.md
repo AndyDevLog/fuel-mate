@@ -112,6 +112,11 @@ CautionPoint(id: String, type: CautionPointType, remainDistance: Int)
 
 - ⚠️ `RouteStateInfo.isRouting`은 **안내 중에도 false**로 왔다(주유소로 안내 중, `naviMode=ROUTE_GUIDING`). 안내 중인지는 `naviMode`(`NOT_WORKING`, `SAFE_GUIDING`(경로 없는 안전운전), `ROUTE_GUIDING`, `SIMULATION_GUIDING`)로 본다
 - 경유지를 넣으면 잠깐 `SAFE_GUIDING`이 됐다가 다시 `ROUTE_GUIDING`이 된다. 내비 앱이 앞으로 나온다
+- (2026-11-08) 경유지를 넣으면 내비가 "경유지 N개 포함" 경로 미리보기와 [안내 시작] 카운트다운(약 5초)을 띄운다. 이 동안 `SAFE_GUIDING`이고 목적지도 비어 있다. 카운트다운이 끝나면 `onWaypointChanged(ADD)`가 오고(요청 뒤 약 7초) `ROUTE_GUIDING`으로 돌아온다
+- (2026-11-08) 미리보기에서 [X]를 누르면 안내 전체가 끝나고 `onWaypointChanged`는 오지 않는다. 앱은 넣기 응답을 15초 기다린 뒤 포기하고 경유 상태를 지운다(`NaviWaypoint.PENDING_TIMEOUT_MS`)
+- (2026-11-08) 경유지가 있는 채로 또 `addWaypoint(FIRST)`를 부르면 앞의 경유지는 그대로 있고 하나가 더 붙는다("경유지 2개 포함")
+- (2026-11-08, javap) `removeWaypoint(WaypointIndex)`. `WaypointIndex`는 `FIRST`, `SECOND`, `ALL`이고 `WaypointCmdType`은 `ADD`, `REMOVE`다(경유지는 2개까지로 보인다. 2개가 찬 뒤의 추가 요청에는 응답이 없었다)
+- (2026-11-08 에뮬레이터) `removeWaypoint(FIRST)`도 내비가 앞으로 나와 미리보기와 카운트다운을 띄우고, 약 7초 뒤 `onWaypointChanged(REMOVE)`가 온다. 그 직후 `getDestinationInfo()`는 경유지를 뺀 목적지 거리를 돌려줬다(13,000m). 이어서 `addWaypoint`를 부르면 미리보기가 한 번 더 뜬다. 바꾸기 전체는 약 15초
 - 경유지를 넣기 전 남은 거리: `onDrivingInfo`는 넣기 전에는 오지 않았고, `getDestinationInfo()` → `DestinationInfo.remainDistance`가 경로 거리와 맞게 왔다(2,300m, 14,000m)
 - ⚠️ `WaypointChangedInfo.routeStartInfo.distance`는 **첫 경유지까지 거리**다(2026-11-06 확인). 2,300m 경로에 경유지를 넣자 이 값은 4,800m, `onDrivingInfo`는 목적지 9,200m·경유지 [4,800]m, `remainDistance`는 9,200m였다. 넣은 뒤의 목적지 거리는 `onDrivingInfo`·`remainDistance`로 받고, 실제 우회 = 넣은 뒤 목적지 거리 − 넣기 전 목적지 거리(여기서는 6,900m). 예전에 본 "10000 → 4800"도 이 값을 잘못 비교한 것이다. 앱은 말이 안 되는 우회 값(음수·20km 초과)이면 "실제 우회 거리는 확인하지 못함"으로 표시한다
 - 이미 경유지로 들어간 곳을 다시 넣으면 `onWaypointChanged`가 오지 않았다

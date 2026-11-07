@@ -49,7 +49,7 @@ class ParkedScreen(
         row.addView(View(row.context), LinearLayout.LayoutParams(ui.dp(BUTTON_COLUMN_DP), 1))
     }
     private val others = ui.column()
-    private var shownOthers: List<ScreenModel.OtherOption>? = null
+    private var shownOthers: Pair<List<ScreenModel.OtherOption>, String>? = null
 
     private val fuelTitle = ui.text(TextSize.TITLE, ui.p.subtext, bold = true)
     private val fuelPercent = ui.text(TextSize.HERO, ui.p.text, bold = true)
@@ -289,15 +289,15 @@ class ParkedScreen(
         val hasOthers = r.others.isNotEmpty()
         othersDivider.visibility = if (hasOthers) View.VISIBLE else View.GONE
         othersHeader.visibility = if (hasOthers) View.VISIBLE else View.GONE
-        if (shownOthers != r.others) {
-            shownOthers = r.others
+        if (shownOthers != r.others to r.othersAction) {
+            shownOthers = r.others to r.othersAction
             others.removeAllViews()
             r.others.forEach { o ->
                 others.addView(ui.row().apply {
                     setPadding(0, ui.dp(10), 0, ui.dp(10))
                     addColumns(this, o.name, o.price, o.detour, o.gain, ui.p.text, TextSize.BODY, bold = false)
                     addView(
-                        ui.button("경유지", TextSize.BODY, minHeightDp = ROW_BUTTON_DP).apply {
+                        ui.button(r.othersAction, TextSize.BODY, minHeightDp = ROW_BUTTON_DP).apply {
                             setPadding(0, 0, 0, 0)
                             setOnClickListener { onAddWaypoint(o.station) }
                         },
