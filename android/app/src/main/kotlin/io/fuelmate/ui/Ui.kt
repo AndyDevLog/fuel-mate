@@ -54,8 +54,10 @@ data class Palette(
  * 에뮬레이터(160dpi)는 1sp = 1px, 1mm ≈ 6.3px라 5mm ≈ 32sp, 3mm ≈ 19sp다. 실차 밀도는 확인 필요.
  */
 object TextSize {
-    const val DRIVE_MAIN = 48f
-    const val DRIVE_SUB = 30f
+    /** 주행 화면 큰 글자(약 10mm). 운전 중 한눈에 읽히게 정차 화면보다 크게 */
+    const val DRIVE_MAIN = 64f
+    /** 주행 화면 보조 한 줄(약 6mm) */
+    const val DRIVE_SUB = 36f
     /** 추천 카드의 이득 금액. 화면에서 가장 크다 */
     const val GAIN = 76f
     /** 정차 카드에서 먼저 읽을 값(연료 %) */

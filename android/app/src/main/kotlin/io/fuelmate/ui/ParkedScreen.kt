@@ -1,7 +1,6 @@
 package io.fuelmate.ui
 
 import android.content.res.Configuration
-import android.graphics.drawable.GradientDrawable
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -53,16 +52,10 @@ class ParkedScreen(
 
     private val fuelTitle = ui.text(TextSize.TITLE, ui.p.subtext, bold = true)
     private val fuelPercent = ui.text(TextSize.HERO, ui.p.text, bold = true)
-    private val fuelFill = View(startCard.context).apply { background = rounded(ui.p.button) }
-    private val fuelRest = View(startCard.context)
-    private val fuelGauge = ui.row().apply {
-        background = rounded(ui.p.divider)
-        addView(fuelFill, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 0f))
-        addView(fuelRest, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f))
-    }
+    /** 정차 중이라 보일 때 한 번 채워지는 연출을 한다 */
+    private val fuelTank = FuelTankView(startCard.context, ui.p, animateOnShow = true)
     private val fuelDetail = ui.text(TextSize.BODY, ui.p.text)
     private val priceLine = ui.text(TextSize.SMALL, ui.p.subtext)
-    private var shownPercent: Int? = null
 
     private val tripCard = ui.card()
     private val tripTitle = ui.text(TextSize.TITLE, ui.p.subtext, bold = true)
@@ -86,6 +79,7 @@ class ParkedScreen(
     init {
         recButton.setOnClickListener { station?.let(onAddWaypoint) }
         recScene.onFrame = ::showGain
+        fuelTank.onFrame = ::showFuelPercent
 
         startCard.apply {
             // 그림이 남는 높이를 모두 갖고, 조작은 손이 닿기 쉬운 아래쪽에 모은다. [어디로 가세요?]는 바로 가기 수와 상관없이 맨 아래에 있다
@@ -130,13 +124,17 @@ class ParkedScreen(
 
         val fuelCard = ui.card().apply {
             addView(fuelTitle)
-            addView(ui.gap(4))
-            addView(fuelPercent)
             addView(ui.gap(12))
-            addView(fuelGauge, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ui.dp(20)))
+            addView(ui.row().apply {
+                addView(fuelTank, LinearLayout.LayoutParams(ui.dp(130), ui.dp(190)))
+                addView(View(context), LinearLayout.LayoutParams(ui.dp(32), 1))
+                addView(ui.column().apply {
+                    addView(fuelPercent)
+                    addView(ui.gap(4))
+                    addView(fuelDetail)
+                }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            })
             addView(ui.gap(16))
-            addView(fuelDetail)
-            addView(ui.gap(8))
             addView(priceLine)
         }
         tripCard.apply {
@@ -186,11 +184,6 @@ class ParkedScreen(
         }
     }
 
-    private fun rounded(color: Int) = GradientDrawable().apply {
-        setColor(color)
-        cornerRadius = ui.dp(10).toFloat()
-    }
-
     /** 다른 곳 표의 네 열. 이름 열이 남는 폭을 쓰고 숫자 열은 폭을 고정해 줄끼리 세로로 맞춘다 */
     private fun addColumns(row: LinearLayout, name: String, price: String, detour: String, gain: String, color: Int, size: Float, bold: Boolean) {
         row.addView(ui.text(size, color, bold).apply { text = name }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
@@ -227,12 +220,8 @@ class ParkedScreen(
         fuelPercent.show(f.percentText)
         fuelDetail.show(f.detail)
         priceLine.show(f.priceLine)
-        fuelGauge.visibility = if (f.percent != null) View.VISIBLE else View.GONE
-        if (f.percent != null && f.percent != shownPercent) {
-            shownPercent = f.percent
-            fuelFill.layoutParams = (fuelFill.layoutParams as LinearLayout.LayoutParams).apply { weight = f.percent.toFloat() }
-            fuelRest.layoutParams = (fuelRest.layoutParams as LinearLayout.LayoutParams).apply { weight = (100 - f.percent).toFloat() }
-        }
+        fuelTank.set(f.percent, f.electric)
+        showFuelPercent()
     }
 
     /** 그림은 이득이 있을 때만 보인다. 뷰가 다시 보일 때와 주유소가 바뀔 때만 재생되고, 금액만 바뀌면 다시 재생하지 않는다 */
@@ -247,6 +236,13 @@ class ParkedScreen(
         if (has && wasVisible && scenePlace != null && place != scenePlace) recScene.replay()
         if (has) scenePlace = place
         showGain()
+    }
+
+    /** 통이 채워지는 동안 % 숫자도 같이 올라간다. 멈춰 있으면 모델의 글자 그대로 */
+    private fun showFuelPercent() {
+        val f = last?.fuel ?: return
+        val now = fuelTank.shownPercent
+        fuelPercent.show(if (f.percent != null && now != null && now < f.percent) "$now%" else f.percentText)
     }
 
     /** 재생 중이면 올라가는 금액을, 멈춰 있으면 [ScreenModel.RecCard.gainLine]을 그대로 보인다 */

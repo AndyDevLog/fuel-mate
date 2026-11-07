@@ -29,7 +29,17 @@ sealed interface ScreenModel {
         /** LIMIT_CONTENT 규제가 켜지면 null(한 줄만) */
         val sub: String?,
         val addWaypoint: Station?,
+        /** 추천이 없을 때 큰 글자 옆 연료 통 그림(0~100). 움직이지 않는다. LIMIT_CONTENT면 null */
+        val gaugePercent: Int? = null,
+        val gaugeElectric: Boolean = false,
+        /** 큰 글자가 이득 금액이면 초록으로 쓴다 */
+        val mainGain: Boolean = false,
+        /** 큰 글자 옆 주유소 핀(움직이지 않는다). 추천·경유 중일 때만. LIMIT_CONTENT면 null */
+        val pin: DrivePin? = null,
+        val buttonLabel: String = "여기 들르기",
     ) : ScreenModel
+
+    enum class DrivePin { GAIN, PLAIN, ACTIVE }
 
     /** 정차 중: 추천 카드, 이번 운행 요약, 계산 방법 */
     data class Parked(
@@ -44,8 +54,9 @@ sealed interface ScreenModel {
     data class FuelCard(
         val title: String,
         val percentText: String,
-        /** 게이지 값(0~100). 모르면 null */
+        /** 연료 통 그림 값(0~100). 모르면 null */
         val percent: Int?,
+        val electric: Boolean,
         val detail: String?,
         val priceLine: String,
     )
@@ -98,18 +109,37 @@ sealed interface ScreenModel {
             val w = s.waypoint
             if (w != null) {
                 val main = "${shortName(w.stationName, short)} ${if (w.asDestination) "안내 중" else "경유 중"}"
-                val sub = w.detourM?.let { "실제 우회 ${km(it)}" } ?: if (w.added) "경유지 추가됨" else null
-                return Driving(main, sub.takeUnless { limit }, null)
+                val sub = w.detourM?.let { "실제 우회 ${km(it)}" } ?: if (w.added) "경유지 추가됨" else "내비에 넣는 중"
+                return Driving(main, sub.takeUnless { limit }, null, pin = DrivePin.ACTIVE.takeUnless { limit })
             }
             val r = StationRecommender.recommend(s)
             if (r == null) {
-                val fuel = s.energy?.percent?.let { "연료 ${it.roundToInt()}%" } ?: "연료 모름"
-                return Driving(fuel, noRecReason(s).takeUnless { limit }, null)
+                val percent = s.energy?.percent?.roundToInt()?.coerceIn(0, 100)
+                val fuel = percent?.let { "연료 $it%" } ?: "연료 모름"
+                // 운전 중에는 내비를 만지라고 하지 않는다. 목적지가 생기면 앱이 알아서 찾는다는 것만 말한다
+                val reason = if (s.destination == null && s.energy?.kind != EnergyKind.ELECTRIC) "목적지가 정해지면 가는 길 주유소를 찾아요" else noRecReason(s)
+                return Driving(
+                    fuel, reason.takeUnless { limit }, null,
+                    gaugePercent = percent.takeUnless { limit }, gaugeElectric = s.energy?.kind == EnergyKind.ELECTRIC,
+                )
             }
+            // 한눈에 읽을 값은 이득 금액이라 그것을 큰 글자로, 어디인지는 보조 줄로 쓴다(정차 카드와 같은 순서)
             val b = r.best
-            val main = "${shortName(b.station.name, short)} ${price(b.station.priceWonPerL)}"
-            val sub = if (r.worthDetour) "${HabitText.won(b.gainWon)} 이득 · 우회 ${km(b.detourM)}" else "가까운 곳 · 차이 작음"
-            return Driving(main, sub.takeUnless { limit }, b.station)
+            val place = "${shortName(b.station.name, short)} ${price(b.station.priceWonPerL)}"
+            return if (r.worthDetour) Driving(
+                main = "${HabitText.won(b.gainWon)} 이득",
+                sub = "$place · 우회 ${km(b.detourM)}".takeUnless { limit },
+                addWaypoint = b.station,
+                mainGain = true,
+                pin = DrivePin.GAIN.takeUnless { limit },
+                buttonLabel = visitLabel(b.station.name),
+            ) else Driving(
+                main = place,
+                sub = "가까운 곳이라 차이가 작아요".takeUnless { limit },
+                addWaypoint = b.station,
+                pin = DrivePin.PLAIN.takeUnless { limit },
+                buttonLabel = visitLabel(b.station.name),
+            )
         }
 
         /** 다른 곳 표에 보일 수. 넓은 화면의 세로 공간을 채우면서 비교할 후보를 늘린다 */
@@ -127,6 +157,7 @@ sealed interface ScreenModel {
                 title = kind.label,
                 percentText = percent?.let { "$it%" } ?: "모름",
                 percent = percent,
+                electric = kind == EnergyKind.ELECTRIC,
                 detail = detail,
                 priceLine = "단가 ${"%,.0f".format(s.prices.of(kind))}원/${kind.unit} · ${s.prices.basis(kind)}",
             )
