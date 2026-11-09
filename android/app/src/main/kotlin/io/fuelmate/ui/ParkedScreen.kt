@@ -1,6 +1,9 @@
 package io.fuelmate.ui
 
 import android.content.res.Configuration
+import android.text.SpannableStringBuilder
+import android.text.Spanned
+import android.text.style.ForegroundColorSpan
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -60,7 +63,13 @@ class ParkedScreen(
 
     private val tripCard = ui.card()
     private val tripTitle = ui.text(TextSize.TITLE, ui.p.subtext, bold = true)
-    private val tripSummary = ui.text(TextSize.LEAD, ui.p.text, bold = true)
+    /** 큰 금액. 타임라인 연출 동안 차 아이콘을 따라 올라간다 */
+    private val tripCost = ui.text(TextSize.HERO, ui.p.text, bold = true)
+    private val tripCaption = ui.text(TextSize.BODY, ui.p.subtext)
+    private val tripTimeline = TripTimelineView(startCard.context, ui.p)
+    private val tripLegend = ui.text(TextSize.BODY, ui.p.text)
+    /** 타임라인 아래 빈칸. 계산 방법을 펼치면 숨겨 설명이 잘리지 않게 한다 */
+    private val tripLegendGap = ui.gap(12)
     private val tripDetail = ui.text(TextSize.BODY, ui.p.subtext)
     private val tripEmpty = ui.text(TextSize.BODY, ui.p.subtext).apply {
         text = "운전이 끝나면 급제동·고속·긴 정차로 기름값을 약 얼마나 더 썼는지 보여 드려요"
@@ -142,9 +151,13 @@ class ParkedScreen(
         }
         tripCard.apply {
             addView(tripTitle)
+            addView(ui.gap(8))
+            addView(tripCost)
+            addView(tripCaption)
             addView(ui.gap(12))
-            addView(tripSummary)
-            addView(ui.gap(4))
+            addView(tripTimeline)
+            addView(tripLegend)
+            addView(tripLegendGap)
             addView(tripDetail)
             addView(tripEmpty)
             addView(ui.gap(12))
@@ -154,8 +167,15 @@ class ParkedScreen(
 
         val c = startCard.context.resources.configuration
         val wide = c.orientation == Configuration.ORIENTATION_LANDSCAPE && c.screenWidthDp >= 900
-        // 넓은 화면은 공간이 넉넉해 계산 방법을 처음부터 펼쳐 둔다
-        expanded = wide
+        // 계산 방법은 접어 두고 타임라인을 보인다. 펼치면 타임라인 자리를 계산 방법이 쓴다
+        expanded = false
+        // 넓은 화면은 카드의 남는 높이를 타임라인이 채운다
+        tripTimeline.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            if (wide) 0 else ui.dp(TIMELINE_DP),
+            if (wide) 1f else 0f,
+        )
+        tripTimeline.onFrame = ::showTripCost
         val cardHeight = if (wide) ViewGroup.LayoutParams.MATCH_PARENT else ViewGroup.LayoutParams.WRAP_CONTENT
         val main = ui.column().apply {
             addView(startCard, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, cardHeight))
@@ -310,14 +330,52 @@ class ParkedScreen(
 
         val t = m.trip
         tripTitle.show(t?.title ?: "지난 운행")
-        tripSummary.show(t?.summary)
+        tripCost.show(t?.costLine)
+        tripCaption.show(t?.caption)
+        if (t != null) tripTimeline.set(t.timeline, t.tripKey, animate = !t.live)
+        val picture = t != null && !expanded
+        val want = if (picture) View.VISIBLE else View.GONE
+        if (tripTimeline.visibility != want) tripTimeline.visibility = want
+        tripLegendGap.visibility = want
+        if (t != null && picture) {
+            tripLegend.visibility = View.VISIBLE
+            tripLegend.text = legend(t)
+        } else tripLegend.visibility = View.GONE
+        showTripCost()
         tripDetail.show(t?.detail)
         tripEmpty.visibility = if (t == null) View.VISIBLE else View.GONE
         explainButton.show(if (t == null) null else if (expanded) "계산 방법 닫기 ▲" else "계산 방법 보기 ▼")
         explanation.show(if (t != null && expanded) t.explanation.joinToString("\n") else null)
     }
 
+    /** 타임라인 연출 중이면 차가 지나온 만큼의 금액, 아니면 운행 금액 */
+    private fun showTripCost() {
+        val t = last?.trip ?: return
+        tripCost.text = if (tripTimeline.playing) countingWon(t.timeline.wonAt(tripTimeline.carAt)) else t.costLine
+    }
+
+    /** 올라가는 중의 금액: 0원에서 시작해 10원 단위로 내려 센다(마지막 장면은 [HabitText.won]과 같은 값) */
+    private fun countingWon(won: Double): String {
+        val tens = (won / 10).toLong() * 10
+        return if (tens < 10) "0원" else "약 ${"%,d".format(tens)}원"
+    }
+
+    /** 타임라인 범례: 그림과 같은 색의 기호 + 항목 수. 기호와 글자가 줄바꿈으로 갈리지 않게 붙인다 */
+    private fun legend(t: ScreenModel.TripCard): CharSequence = SpannableStringBuilder().apply {
+        fun item(glyph: String, color: Int, text: String) {
+            if (isNotEmpty()) append("   ")
+            val from = length
+            append(glyph)
+            setSpan(ForegroundColorSpan(color), from, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            append("\u00A0").append(text.replace(' ', '\u00A0'))
+        }
+        item("▼", ui.p.alert, "급제동·급감속 ${t.brakingCount}회")
+        item("▲", ui.p.subtext, "급가속 ${t.accelCount}회")
+        item("━", ui.p.alert, "긴 정차 ${t.idleCount}회")
+    }
+
     private companion object {
+        const val TIMELINE_DP = 200
         const val START_SCENE_MS = 3_600L
         /** 금액을 빨리 읽어야 해서 첫 화면보다 짧다(UI Design Guide: 1~2초 안에 파악) */
         const val GAIN_SCENE_MS = 2_600L

@@ -1,7 +1,9 @@
 package io.fuelmate.ui
 
 import io.fuelmate.core.cost.HabitBaseline
+import io.fuelmate.core.cost.HabitCategory
 import io.fuelmate.core.cost.HabitCostEstimator
+import io.fuelmate.core.cost.HabitTimeline
 import io.fuelmate.core.energy.Efficiency
 import io.fuelmate.core.energy.EfficiencyStatus
 import io.fuelmate.core.energy.MyEfficiency
@@ -103,7 +105,25 @@ sealed interface ScreenModel {
     /** 다른 곳 표의 한 줄. 열을 맞춰 비교하기 쉽게 값을 나눠 둔다 */
     data class OtherOption(val station: Station, val name: String, val price: String, val detour: String, val gain: String)
 
-    data class TripCard(val title: String, val summary: String, val detail: String, val explanation: List<String>)
+    /**
+     * 지난 운행(또는 지금 운행) 카드. 큰 금액 + 운행 타임라인 + 항목 수.
+     * @property costLine 큰 글자 "약 1,130원". 타임라인 연출 동안은 [timeline]의 금액이 올라가다 이 값에서 멈춘다
+     * @property tripKey 운행마다 다른 값(시작 시각). 바뀌면 타임라인을 다시 재생한다
+     * @property live 아직 달리는 중인 운행이면 true(타임라인을 움직이지 않는다)
+     */
+    data class TripCard(
+        val title: String,
+        val costLine: String,
+        val caption: String,
+        val timeline: HabitTimeline,
+        val tripKey: Long,
+        val live: Boolean,
+        val brakingCount: Int,
+        val accelCount: Int,
+        val idleCount: Int,
+        val detail: String,
+        val explanation: List<String>,
+    )
 
     companion object {
         fun of(s: AppState): ScreenModel = if (s.drive.restricted) driving(s) else parked(s)
@@ -294,9 +314,19 @@ sealed interface ScreenModel {
             val cost = HabitCostEstimator.estimate(trip, s.prices) ?: return null
             val comparison = HabitBaseline.compare(trip, s.trips, s.prices)
             val minutes = trip.durationMs / 60_000
+            val money = if (cost.kind == EnergyKind.FUEL) "기름값" else "전기 요금"
+            val caption = (if (live != null) "지금까지 " else "") + "습관 때문에 더 쓴 $money" +
+                (comparison?.let { " · ${HabitText.compare(it)}" } ?: "")
             return TripCard(
                 title = if (live != null) "지금 운행" else "지난 운행",
-                summary = HabitText.summary(cost, comparison),
+                costLine = HabitText.won(cost.won),
+                caption = caption,
+                timeline = HabitTimeline.of(trip, cost),
+                tripKey = trip.startWallMs,
+                live = live != null,
+                brakingCount = cost.item(HabitCategory.BRAKING).count,
+                accelCount = cost.hardAccelCount,
+                idleCount = cost.item(HabitCategory.LONG_IDLE).count,
                 detail = "${"%.1f".format(trip.distanceM / 1000)}km · ${if (minutes > 0) "${minutes}분" else "${trip.durationMs / 1000}초"} · " +
                     "사용 ${"%.2f".format(trip.energyUsed)}${trip.energyKind?.unit ?: ""}",
                 explanation = HabitText.explanation(cost, comparison),

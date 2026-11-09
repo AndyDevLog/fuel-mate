@@ -28,19 +28,21 @@ data class Palette(
     val buttonPressed: Int,
     val buttonText: Int,
     val divider: Int,
+    /** 비용이 생긴 곳(운행 타임라인의 급제동·긴 정차) */
+    val alert: Int,
 ) {
     companion object {
         val NIGHT = Palette(
             background = Color.rgb(0x10, 0x14, 0x1C), card = Color.rgb(0x1B, 0x22, 0x30),
             text = Color.rgb(0xF5, 0xF7, 0xFA), subtext = Color.rgb(0xB8, 0xC2, 0xD3), gain = Color.rgb(0x4A, 0xDE, 0x80),
             button = Color.rgb(0x25, 0x63, 0xEB), buttonPressed = Color.rgb(0x1E, 0x40, 0xAF), buttonText = Color.WHITE,
-            divider = Color.rgb(0x2C, 0x35, 0x46),
+            divider = Color.rgb(0x2C, 0x35, 0x46), alert = Color.rgb(0xF8, 0x71, 0x71),
         )
         val DAY = Palette(
             background = Color.rgb(0xF2, 0xF4, 0xF8), card = Color.WHITE,
             text = Color.rgb(0x11, 0x18, 0x27), subtext = Color.rgb(0x4B, 0x55, 0x63), gain = Color.rgb(0x15, 0x80, 0x3D),
             button = Color.rgb(0x1D, 0x4E, 0xD8), buttonPressed = Color.rgb(0x1E, 0x3A, 0x8A), buttonText = Color.WHITE,
-            divider = Color.rgb(0xE5, 0xE7, 0xEB),
+            divider = Color.rgb(0xE5, 0xE7, 0xEB), alert = Color.rgb(0xDC, 0x26, 0x26),
         )
 
         fun of(context: Context): Palette =
