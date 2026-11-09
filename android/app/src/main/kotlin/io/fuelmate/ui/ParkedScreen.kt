@@ -55,6 +55,7 @@ class ParkedScreen(
     /** 정차 중이라 보일 때 한 번 채워지는 연출을 한다 */
     private val fuelTank = FuelTankView(startCard.context, ui.p, animateOnShow = true)
     private val fuelDetail = ui.text(TextSize.BODY, ui.p.text)
+    private val efficiencyLine = ui.text(TextSize.BODY, ui.p.text)
     private val priceLine = ui.text(TextSize.SMALL, ui.p.subtext)
 
     private val tripCard = ui.card()
@@ -135,6 +136,8 @@ class ParkedScreen(
                 }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
             })
             addView(ui.gap(16))
+            addView(efficiencyLine)
+            addView(ui.gap(8))
             addView(priceLine)
         }
         tripCard.apply {
@@ -219,6 +222,7 @@ class ParkedScreen(
         fuelTitle.show(f.title)
         fuelPercent.show(f.percentText)
         fuelDetail.show(f.detail)
+        efficiencyLine.show(f.efficiencyLine)
         priceLine.show(f.priceLine)
         fuelTank.set(f.percent, f.electric)
         showFuelPercent()

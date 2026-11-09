@@ -1,5 +1,6 @@
 package io.fuelmate.core.station
 
+import io.fuelmate.core.energy.MyEfficiency
 import io.fuelmate.core.geo.GeoMath
 import io.fuelmate.core.model.AppState
 import io.fuelmate.core.model.EnergyKind
@@ -82,7 +83,7 @@ class StationTest {
         val here = GeoPoint(37.40, 127.10)
         val ahead = GeoMath.destination(here, 0.0, 5_000.0)
         val near = st("near", 1900.0, 37.401, 127.100)
-        // 20원 싸지만 옆으로 약 2km 떨어짐 → 우회 약 2.4km × 0.09L × 1,900원 ≈ 410원 > 20원 × 10L
+        // 20원 싸지만 옆으로 약 2km 떨어짐 → 우회 약 1.9km ÷ 11km/L × 1,900원 ≈ 320원 > 20원 × 10L
         val farSide = st("side", 1880.0, 37.42, 127.123)
         val r = assertNotNull(StationRecommender.recommend(listOf(near, farSide), here, ahead, fillL = 10.0))
         assertEquals("near", r.best.station.id)
@@ -130,11 +131,11 @@ class StationTest {
         assertFalse(estimated.actualDetour)
         assertEquals(r.best.gainWon, estimated.option.gainWon)
 
-        // 100원 × 45L = 4,500원 − (6,900m − 기준 우회) × 0.09L/km × 1,900원
+        // 100원 × 45L = 4,500원 − (6,900m − 기준 우회) ÷ 가정 연비 11km/L × 1,900원
         val actual = assertNotNull(r.chosen("cheap", 6_900.0))
         assertTrue(actual.actualDetour)
         assertEquals(6_900.0, actual.option.detourM)
-        val expected = 4_500.0 - (6_900.0 - r.baseline.detourM) / 1000 * 0.09 * 1900.0
+        val expected = 4_500.0 - (6_900.0 - r.baseline.detourM) / 1000 / MyEfficiency.ASSUMED_KM_PER_L * 1900.0
         assertEquals(expected, actual.option.gainWon, 0.001)
         assertTrue(actual.option.gainWon < estimated.option.gainWon)
 

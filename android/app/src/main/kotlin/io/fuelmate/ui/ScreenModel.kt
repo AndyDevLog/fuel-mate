@@ -2,6 +2,9 @@ package io.fuelmate.ui
 
 import io.fuelmate.core.cost.HabitBaseline
 import io.fuelmate.core.cost.HabitCostEstimator
+import io.fuelmate.core.energy.Efficiency
+import io.fuelmate.core.energy.EfficiencyStatus
+import io.fuelmate.core.energy.MyEfficiency
 import io.fuelmate.core.model.AppState
 import io.fuelmate.core.model.EnergyKind
 import io.fuelmate.core.model.EnergyOrigin
@@ -58,6 +61,8 @@ sealed interface ScreenModel {
         val percent: Int?,
         val electric: Boolean,
         val detail: String?,
+        /** 연료차만: "내 차 연비 12.4km/L · 312km 기록" 또는 배우는 중 진행. 전기차는 null */
+        val efficiencyLine: String? = null,
         val priceLine: String,
     )
 
@@ -159,6 +164,7 @@ sealed interface ScreenModel {
                 percent = percent,
                 electric = kind == EnergyKind.ELECTRIC,
                 detail = detail,
+                efficiencyLine = if (kind == EnergyKind.FUEL) efficiencyLine(MyEfficiency.of(s.trips)) else null,
                 priceLine = "단가 ${"%,.0f".format(s.prices.of(kind))}원/${kind.unit} · ${s.prices.basis(kind)}",
             )
             val start = startCard(s)
@@ -266,7 +272,21 @@ sealed interface ScreenModel {
             }
 
         private fun basis(r: Recommendation) =
-            "가까운 ${shortName(r.baseline.station.name, false)} ${price(r.baseline.station.priceWonPerL)}보다 · 가득 ${"%.0f".format(r.fillL)}L 기준"
+            "가까운 ${shortName(r.baseline.station.name, false)} ${price(r.baseline.station.priceWonPerL)}보다 · 가득 ${"%.0f".format(r.fillL)}L · " +
+                "${if (r.efficiency.mine) "내 차 연비" else "가정 연비"} ${kmPerL(r.efficiency.kmPerL)} 기준"
+
+        /**
+         * 돌아가는 길 기름값에 쓰는 연비. 내 운행 기록이 쌓이면 그 값을 쓴다는 것을 연료 카드에서 보여 준다.
+         * 배우는 중에는 쌓인 거리를 보여서, 달릴수록 내 차 값으로 바뀐다는 것이 보이게 한다
+         */
+        private fun efficiencyLine(e: Efficiency) = when (e.status) {
+            EfficiencyStatus.MINE -> "내 차 연비 ${kmPerL(e.kmPerL)} · 운행 ${"%,.0f".format(e.recordKm)}km 기록"
+            EfficiencyStatus.LEARNING ->
+                "내 차 연비 배우는 중 · ${"%.1f".format(e.recordKm)} / ${"%.0f".format(MyEfficiency.MIN_KM)}km"
+            EfficiencyStatus.ODD -> "내 차 연비 기록이 맞지 않아 가정값을 써요"
+        }
+
+        private fun kmPerL(v: Double) = "${"%.1f".format(v)}km/L"
 
         private fun tripCard(s: AppState): TripCard? {
             val live = s.trip
