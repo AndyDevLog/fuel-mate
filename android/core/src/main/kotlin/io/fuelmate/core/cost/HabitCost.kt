@@ -10,7 +10,6 @@ import kotlin.math.max
 enum class HabitCategory(val label: String) {
     BRAKING("급제동·급감속"),
     HIGH_SPEED("시속 100km 넘는 고속"),
-    LONG_IDLE("긴 정차"),
 }
 
 /** 항목 하나. [amount]는 연료 L 또는 전기 kWh, [count]는 사건 수(고속은 0) */
@@ -19,6 +18,8 @@ data class HabitItem(val category: HabitCategory, val count: Int, val amount: Do
 /**
  * 이번 운행의 운전 습관 비용 **추정**. 실제 소비를 잰 값이 아니라 속도 기록과 가정값(차 무게·효율·회생률)으로 계산한다.
  * 급가속은 원화 근거가 약해서(docs/pivot-fuel.md 13-3) 횟수만 둔다.
+ * 긴 정차(P가 아닌 채 2분 넘게 섬)는 넣지 않는다: 대부분 신호·정체라 운전자가 고칠 수 있는 습관으로 보기 어렵고,
+ * ISG·하이브리드는 서 있는 동안 엔진이 꺼져 공회전 연료 가정도 맞지 않는다(2026-11-09 사용자 결정). 사건 판정·저장은 그대로 둔다.
  */
 data class HabitCost(
     val kind: EnergyKind,
@@ -37,7 +38,6 @@ data class HabitCost(
  * - 급제동·급감속: 잃은 운동 에너지 ½·m·(v₁² − v₂²)에서 그동안 구름·공기저항이 쓴 몫을 뺀 것이 브레이크로 버린 에너지다.
  *   전기차는 그중 회생으로 되찾은 몫을 뺀다. 바퀴 에너지 ÷ 구동 효율 = 연료·배터리에서 나간 에너지
  * - 고속: 시속 100km를 넘는 동안 공기저항 ½·ρ·CdA·(v² − v₀²)·거리. 운행이 Σ(v² − v₀²)·Δs를 쌓아 둔다
- * - 긴 정차: 2분 넘게 선 시간 전체 × 공회전 연료(내연기관) 또는 보조 전력(전기). 공조는 넣지 않았다
  */
 object HabitCostEstimator {
 
@@ -54,8 +54,6 @@ object HabitCostEstimator {
                 else -> 0.0
             }
         }
-        val idles = trip.events.filterIsInstance<DriveEvent.LongIdle>()
-        val idleAmount = idles.sumOf { idleWaste(p, it.durationMs) }
         val highAmount = highSpeedWaste(p, trip.highSpeedExcess)
 
         fun item(c: HabitCategory, count: Int, amount: Double) = HabitItem(c, count, amount, amount * price)
@@ -64,7 +62,6 @@ object HabitCostEstimator {
             items = listOf(
                 item(HabitCategory.BRAKING, braking.size, brakingAmount),
                 item(HabitCategory.HIGH_SPEED, 0, highAmount),
-                item(HabitCategory.LONG_IDLE, idles.size, idleAmount),
             ),
             hardAccelCount = trip.count<DriveEvent.HardAccel>(),
             prices = prices,
@@ -95,9 +92,6 @@ object HabitCostEstimator {
         val wheelJ = 0.5 * Consumption.AIR_DENSITY * p.cdA * excess
         return Consumption.toSourceAmount(p, wheelJ / p.drivetrainEfficiency / J_PER_KWH)
     }
-
-    fun idleWaste(p: VehicleParams, durationMs: Long): Double =
-        Consumption.toSourceAmount(p, p.idleKw * durationMs / 3_600_000.0)
 
     private const val J_PER_KWH = 3_600_000.0
 }

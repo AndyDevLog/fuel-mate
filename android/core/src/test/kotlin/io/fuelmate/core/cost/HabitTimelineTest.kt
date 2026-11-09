@@ -12,7 +12,7 @@ class HabitTimelineTest {
     private val kmh = 1 / 3.6f
     private val start = 10_000L
 
-    /** 100초 운행: 20초에 급가속, 30초에 급제동, 50~70초 긴 정차, 90초에 급감속, 고속 구간도 있음 */
+    /** 100초 운행: 20초에 급가속, 30초에 급제동, 50~70초 긴 정차(그리지 않음), 90초에 급감속, 고속 구간도 있음 */
     private val trip = Trip(
         startMs = start,
         startWallMs = 0,
@@ -32,22 +32,21 @@ class HabitTimelineTest {
 
     @Test
     fun `사건을 운행 안 위치 순서로 늘어놓고 합계는 습관 비용과 같다`() {
-        assertEquals(listOf(TimelineMarkKind.ACCEL, TimelineMarkKind.BRAKING, TimelineMarkKind.IDLE, TimelineMarkKind.BRAKING), t.marks.map { it.kind })
-        assertEquals(listOf(0.2f, 0.3f, 0.5f, 0.9f), t.marks.map { it.at })
-        assertEquals(0.7f, t.marks[2].end, 1e-6f)
+        assertEquals(listOf(TimelineMarkKind.ACCEL, TimelineMarkKind.BRAKING, TimelineMarkKind.BRAKING), t.marks.map { it.kind })
+        assertEquals(listOf(0.2f, 0.3f, 0.9f), t.marks.map { it.at })
         assertEquals(0.0, t.marks[0].won)
         assertEquals(cost.won, t.totalWon, 1e-9)
         assertEquals(cost.item(HabitCategory.HIGH_SPEED).won, t.spreadWon, 1e-9)
     }
 
     @Test
-    fun `금액은 지나는 순간 더하고, 긴 정차는 구간 동안, 고속은 고르게 더한다`() {
+    fun `금액은 급제동을 지나는 순간 더하고, 고속은 고르게 더한다`() {
         val brake = t.marks[1].won
-        val idle = t.marks[2].won
         assertEquals(0.0, t.wonAt(0f), 1e-9)
         assertEquals(t.spreadWon * 0.29, t.wonAt(0.29f), 1e-4)
         assertEquals(t.spreadWon * 0.3 + brake, t.wonAt(0.3f), 1e-4)
-        assertEquals(t.spreadWon * 0.6 + brake + idle / 2, t.wonAt(0.6f), 1e-4)
+        assertEquals(t.spreadWon * 0.6 + brake, t.wonAt(0.6f), 1e-4)
+        assertEquals(t.spreadWon * 0.9 + brake + t.marks[2].won, t.wonAt(0.9f), 1e-4)
         assertEquals(t.totalWon, t.wonAt(1f), 1e-9)
         // 처음부터 끝까지 줄지 않는다
         val values = (0..100).map { t.wonAt(it / 100f) }

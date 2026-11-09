@@ -81,7 +81,7 @@ def blocks(lines: list[str]) -> str:
 IMAGES = [("parked.jpg", "정차 화면: 가는 길 추천 주유소와 실제 이득(돌아가는 기름값을 뺀 값), 탭 한 번 경유지 추가, 지난 운행 요약"),
           ("drive.jpg", "주행 화면: 이득 금액 큰 글자 한 줄 + 주유소·우회 보조 한 줄 + 들르기 버튼 하나(목록·설정·애니메이션 없음)"),
           ("navi.jpg", "경유지 추가 후: 차 안 내비게이션이 추천 주유소를 거치는 경로로 다시 안내"),
-          ("trip.jpg", "운행 요약과 계산 방법: 급제동·고속·긴 정차 비용(추정)과 쓴 가정값")]
+          ("trip.jpg", "운행 요약과 계산 방법: 급제동·고속 비용(추정)과 쓴 가정값")]
 media = unpacked / "word" / "media"
 media.mkdir(exist_ok=True)
 rels_path = unpacked / "word" / "_rels" / "document.xml.rels"

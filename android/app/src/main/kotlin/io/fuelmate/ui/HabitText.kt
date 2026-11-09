@@ -27,11 +27,9 @@ object HabitText {
     fun summary(cost: HabitCost, comparison: HabitComparison?): String = buildString {
         append("습관 비용 ${won(cost.won)}")
         val brakes = cost.item(HabitCategory.BRAKING).count
-        val idles = cost.item(HabitCategory.LONG_IDLE).count
         val parts = listOfNotNull(
             "급제동 ${brakes}회".takeIf { brakes > 0 },
             "급가속 ${cost.hardAccelCount}회".takeIf { cost.hardAccelCount > 0 },
-            "긴 정차 ${idles}회".takeIf { idles > 0 },
         )
         if (parts.isNotEmpty()) append(" · ").append(parts.joinToString(" · "))
         comparison?.let { append(" · ").append(compare(it)) }
@@ -65,8 +63,7 @@ object HabitText {
             add("· 급제동·급감속: 브레이크로 버린 운동 에너지 ½·m·(v₁²−v₂²) − 저항 몫" +
                 if (cost.kind == EnergyKind.ELECTRIC) ", 회생 ${(p.regenEfficiency * 100).toInt()}%는 뺌" else "")
             add("· 고속: 시속 100km를 넘는 동안 더 든 공기저항")
-            add("· 긴 정차: 2분 넘게 선 시간 × " +
-                if (cost.kind == EnergyKind.FUEL) "공회전 연료(시간당 약 0.8L)" else "보조 전력(${p.idleKw}kW, 공조 제외)")
+            add("· 신호·정체로 서 있던 시간은 넣지 않음")
             add("· 가정값: 무게 ${"%,d".format(p.massKg.toInt())}kg, 구동 효율 ${(p.drivetrainEfficiency * 100).toInt()}%")
             add("· 단가: ${"%,.1f".format(price)}원/$unit, ${cost.prices.basis(cost.kind)}")
             add("· 실제 소비를 잰 값이 아니라 추정값이다")

@@ -57,10 +57,11 @@ class HabitCostTest {
     }
 
     @Test
-    fun `긴 정차 3분은 내연기관 0점04L, 전기차는 보조 전력 0점03kWh`() {
+    fun `긴 정차는 습관 비용에 넣지 않는다 - 신호·정체라 고칠 수 있는 습관이 아니다`() {
         val idle = DriveEvent.LongIdle(0, 180_000)
-        assertEquals(0.04, HabitCostEstimator.estimate(trip(EnergyKind.FUEL, idle))!!.amount, 1e-6)
-        assertEquals(0.03, HabitCostEstimator.estimate(trip(EnergyKind.ELECTRIC, idle))!!.amount, 1e-6)
+        val cost = assertNotNull(HabitCostEstimator.estimate(trip(EnergyKind.FUEL, idle)))
+        assertEquals(0.0, cost.won)
+        assertEquals(listOf(HabitCategory.BRAKING, HabitCategory.HIGH_SPEED), cost.items.map { it.category })
     }
 
     @Test

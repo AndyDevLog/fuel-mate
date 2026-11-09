@@ -28,7 +28,7 @@ data class Palette(
     val buttonPressed: Int,
     val buttonText: Int,
     val divider: Int,
-    /** 비용이 생긴 곳(운행 타임라인의 급제동·긴 정차) */
+    /** 비용이 생긴 곳(운행 타임라인의 급제동·급감속) */
     val alert: Int,
 ) {
     companion object {

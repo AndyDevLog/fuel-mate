@@ -3,7 +3,6 @@ package io.fuelmate.ui
 import android.content.res.Configuration
 import android.text.SpannableStringBuilder
 import android.text.Spanned
-import android.text.style.ForegroundColorSpan
 import android.util.TypedValue
 import android.view.View
 import android.view.ViewGroup
@@ -72,7 +71,7 @@ class ParkedScreen(
     private val tripLegendGap = ui.gap(12)
     private val tripDetail = ui.text(TextSize.BODY, ui.p.subtext)
     private val tripEmpty = ui.text(TextSize.BODY, ui.p.subtext).apply {
-        text = "운전이 끝나면 급제동·고속·긴 정차로 기름값을 약 얼마나 더 썼는지 보여 드려요"
+        text = "운전이 끝나면 급제동·고속으로 기름값을 약 얼마나 더 썼는지 보여 드려요"
     }
     private val explainButton = ui.text(TextSize.BODY, ui.p.text, bold = true).apply {
         minHeight = ui.dp(64)
@@ -360,18 +359,17 @@ class ParkedScreen(
         return if (tens < 10) "0원" else "약 ${"%,d".format(tens)}원"
     }
 
-    /** 타임라인 범례: 그림과 같은 색의 기호 + 항목 수. 기호와 글자가 줄바꿈으로 갈리지 않게 붙인다 */
+    /** 타임라인 범례: 그림과 같은 배지 + 항목 수. 기호와 글자가 줄바꿈으로 갈리지 않게 붙인다 */
     private fun legend(t: ScreenModel.TripCard): CharSequence = SpannableStringBuilder().apply {
-        fun item(glyph: String, color: Int, text: String) {
+        fun item(braking: Boolean, color: Int, text: String) {
             if (isNotEmpty()) append("   ")
             val from = length
-            append(glyph)
-            setSpan(ForegroundColorSpan(color), from, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            append("●")
+            setSpan(TimelineBadgeSpan(color, ui.p.buttonText, braking), from, length, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
             append("\u00A0").append(text.replace(' ', '\u00A0'))
         }
-        item("▼", ui.p.alert, "급제동·급감속 ${t.brakingCount}회")
-        item("▲", ui.p.subtext, "급가속 ${t.accelCount}회")
-        item("━", ui.p.alert, "긴 정차 ${t.idleCount}회")
+        item(true, ui.p.alert, "급제동·급감속 ${t.brakingCount}회")
+        item(false, ui.p.subtext, "급가속 ${t.accelCount}회")
     }
 
     private companion object {

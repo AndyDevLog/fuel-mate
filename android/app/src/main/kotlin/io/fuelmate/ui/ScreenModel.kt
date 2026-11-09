@@ -120,7 +120,6 @@ sealed interface ScreenModel {
         val live: Boolean,
         val brakingCount: Int,
         val accelCount: Int,
-        val idleCount: Int,
         val detail: String,
         val explanation: List<String>,
     )
@@ -326,7 +325,6 @@ sealed interface ScreenModel {
                 live = live != null,
                 brakingCount = cost.item(HabitCategory.BRAKING).count,
                 accelCount = cost.hardAccelCount,
-                idleCount = cost.item(HabitCategory.LONG_IDLE).count,
                 detail = "${"%.1f".format(trip.distanceM / 1000)}km · ${if (minutes > 0) "${minutes}분" else "${trip.durationMs / 1000}초"} · " +
                     "사용 ${"%.2f".format(trip.energyUsed)}${trip.energyKind?.unit ?: ""}",
                 explanation = HabitText.explanation(cost, comparison),
