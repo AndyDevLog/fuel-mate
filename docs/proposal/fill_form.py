@@ -1,7 +1,7 @@
 """docs/proposal.md → 공식 접수양식 02의 8개 답변 칸. 01·03·04(개인정보)는 건드리지 않는다.
 
 양식: 공모전 사이트 /downloads/contest-application-consent.docx (저장소에 넣지 않는다)
-캡처 폴더: parked.jpg, drive.jpg, navi.jpg, trip.jpg(모두 에뮬레이터 앱 영역 1707×1210, 전체 화면에서 x=853·y=90부터 잘라 냄)
+캡처 폴더: start.jpg, parked.jpg, drive.jpg, navi.jpg, trip.jpg(모두 에뮬레이터 앱 영역 1707×1210, 전체 화면에서 x=853·y=90부터 잘라 냄)
 
   mkdir -p /tmp/form && unzip -q contest-application-consent.docx -d /tmp/form/unpacked
   python3 docs/proposal/fill_form.py docs/proposal.md /tmp/form/unpacked <캡처 폴더>
@@ -78,10 +78,11 @@ def blocks(lines: list[str]) -> str:
 
 
 # ---- 화면 캡처(7번 칸에 붙임)
-IMAGES = [("parked.jpg", "정차 화면: 가는 길 추천 주유소와 실제 이득(돌아가는 기름값을 뺀 값), 탭 한 번 경유지 추가, 지난 운행 요약"),
-          ("drive.jpg", "주행 화면: 이득 금액 큰 글자 한 줄 + 주유소·우회 보조 한 줄 + 들르기 버튼 하나(목록·설정·애니메이션 없음)"),
-          ("navi.jpg", "경유지 추가 후: 차 안 내비게이션이 추천 주유소를 거치는 경로로 다시 안내"),
-          ("trip.jpg", "운행 요약과 계산 방법: 급제동·고속 비용(추정)과 쓴 가정값")]
+IMAGES = [("start.jpg", "첫 화면: 목적지가 없으면 앱이 하는 일과 내비의 바로 가기(집·회사·최근 목적지), [어디로 가세요?]"),
+          ("parked.jpg", "추천 카드(정차): 돌아가는 기름값까지 뺀 이득 금액을 가장 크게, 대신 들를 수 있는 곳 표, [들르기]"),
+          ("drive.jpg", "주행 화면: 움직이지 않는 주유소 핀, 이득 금액 큰 글자 한 줄 + 주유소·우회 보조 한 줄 + 들르기 버튼 하나"),
+          ("navi.jpg", "들르기 후: 차 안 내비게이션이 추천 주유소를 거치는 경로로 다시 안내"),
+          ("trip.jpg", "지난 운행: 습관 때문에 더 쓴 기름값(추정)과 출발~도착 타임라인(급제동·급가속 배지)")]
 media = unpacked / "word" / "media"
 media.mkdir(exist_ok=True)
 rels_path = unpacked / "word" / "_rels" / "document.xml.rels"
