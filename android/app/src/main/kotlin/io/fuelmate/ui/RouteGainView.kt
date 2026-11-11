@@ -25,12 +25,15 @@ import kotlin.math.sin
  *
  * 화면에 보일 때 한 번만 재생하고 마지막 장면에서 멈춘다. 멈춘 뒤에는 다시 그리지 않는다.
  * 주행 화면으로 바뀌거나 내비가 앞으로 나오면 바로 멈춘다(UI Design Guide: 운전 중 시선을 빼앗는 애니메이션 금지).
+ * 주행 화면의 그림은 [animateOnShow]=false로 만들어 마지막 장면만 그린다.
  * 상태 갱신과 무관하다: 뷰를 새로 만들지 않으므로 속도·위치가 바뀌어도 다시 재생되지 않는다.
  */
 class RouteGainView(
     context: Context,
     private val p: Palette,
     durationMs: Long,
+    /** false(주행 화면)면 재생하지 않고 처음부터 마지막 장면으로 그린다 */
+    private val animateOnShow: Boolean = true,
 ) : View(context) {
 
     /** 이득인 핀 위에 붙는 글자 */
@@ -158,7 +161,7 @@ class RouteGainView(
         if (isVisible == shown) return
         shown = isVisible
         if (isVisible) {
-            play()
+            if (animateOnShow) play()
         } else {
             animator.cancel()
             progress = 1f
@@ -168,7 +171,7 @@ class RouteGainView(
 
     /** 보이는 중이면 처음부터 한 번 더 재생한다(추천 주유소가 바뀌었을 때) */
     fun replay() {
-        if (shown) play()
+        if (shown && animateOnShow) play()
     }
 
     private fun play() {

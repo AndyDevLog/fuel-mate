@@ -28,23 +28,44 @@ import kotlin.math.roundToInt
  */
 sealed interface ScreenModel {
 
-    /** 주행 중: 큰 글자 한 줄 + 보조 한 줄 + 경유지 추가 하나(docs/pleos/driving-restriction.md) */
+    /**
+     * 주행 중: 큰 글자 한 줄 + 보조 한 줄 + 경유지 추가 하나(docs/pleos/driving-restriction.md).
+     * [cards]가 있으면 정차 화면과 같은 두 열(왼쪽 큰 카드, 오른쪽 연료·운행)로 그리되, 그림은 모두 멈춰 있고 목록·펼치기는 없다.
+     */
     data class Driving(
         val main: String,
         /** LIMIT_CONTENT 규제가 켜지면 null(한 줄만) */
         val sub: String?,
         val addWaypoint: Station?,
-        /** 추천이 없을 때 큰 글자 옆 연료 통 그림(0~100). 움직이지 않는다. LIMIT_CONTENT면 null */
-        val gaugePercent: Int? = null,
-        val gaugeElectric: Boolean = false,
         /** 큰 글자가 이득 금액이면 초록으로 쓴다 */
         val mainGain: Boolean = false,
-        /** 큰 글자 옆 주유소 핀(움직이지 않는다). 추천·경유 중일 때만. LIMIT_CONTENT면 null */
-        val pin: DrivePin? = null,
         val buttonLabel: String = "여기 들르기",
+        /** LIMIT_CONTENT 규제가 켜지면 null(큰 글자 한 줄과 버튼만) */
+        val cards: DriveCards? = null,
     ) : ScreenModel
 
-    enum class DrivePin { GAIN, PLAIN, ACTIVE }
+    /** 주행 화면의 카드들. 정차 화면에서 글자를 줄인 것 */
+    data class DriveCards(
+        /** 왼쪽 큰 카드 제목("가는 길 추천 주유소") */
+        val title: String,
+        /** 왼쪽 큰 카드의 그림. null이면 빈 칸 */
+        val scene: DriveScene?,
+        /** 오른쪽 위 연료 카드. 연비·단가 줄은 그리지 않는다 */
+        val fuel: FuelCard,
+        /** 오른쪽 아래 운행 카드. 금액 한 줄과 설명 한 줄만 */
+        val trip: DriveTrip?,
+    )
+
+    sealed interface DriveScene {
+        /** 경로 그림(정차 화면과 같은 마지막 장면). [chip]은 이득 핀 위 글자 */
+        data class Route(val chip: String) : DriveScene
+        /** 이득이 없을 때 주유소 핀 하나 */
+        data class Pin(val kind: DrivePin) : DriveScene
+    }
+
+    enum class DrivePin { PLAIN, ACTIVE }
+
+    data class DriveTrip(val title: String, val costLine: String, val caption: String)
 
     /** 정차 중: 추천 카드, 이번 운행 요약, 계산 방법 */
     data class Parked(
@@ -130,22 +151,29 @@ sealed interface ScreenModel {
         private fun driving(s: AppState): Driving {
             val limit = s.drive.limitContent
             val short = s.drive.limitStringLength || limit
+            // 그림·제목은 정차 카드와 같은 판단(recCard)에서 가져와, P↔D를 오가도 같은 주유소·금액으로 보이게 한다
+            val rec = if (limit) null else recCard(s)
+            fun cards(scene: DriveScene?) = rec?.let { DriveCards(it.title, scene, fuelCard(s), driveTrip(s)) }
+            val gainScene = rec?.let { r -> r.gainLine?.takeIf { r.gainWon != null }?.let { DriveScene.Route(it) } }
+
             val w = s.waypoint
             if (w != null) {
                 val main = "${shortName(w.stationName, short)} ${if (w.asDestination) "안내 중" else "경유 중"}"
                 val sub = w.detourM?.let { "실제 우회 ${km(it)}" } ?: if (w.added) "경유지 추가됨" else "내비에 넣는 중"
-                return Driving(main, sub.takeUnless { limit }, null, pin = DrivePin.ACTIVE.takeUnless { limit })
+                return Driving(main, sub.takeUnless { limit }, null, cards = cards(gainScene ?: DriveScene.Pin(DrivePin.ACTIVE)))
             }
             val r = StationRecommender.recommend(s)
             if (r == null) {
-                val percent = s.energy?.percent?.roundToInt()?.coerceIn(0, 100)
-                val fuel = percent?.let { "연료 $it%" } ?: "연료 모름"
                 // 운전 중에는 내비를 만지라고 하지 않는다. 목적지가 생기면 앱이 알아서 찾는다는 것만 말한다
                 val reason = if (s.destination == null && s.energy?.kind != EnergyKind.ELECTRIC) "목적지가 정해지면 가는 길 주유소를 찾아요" else noRecReason(s)
-                return Driving(
-                    fuel, reason.takeUnless { limit }, null,
-                    gaugePercent = percent.takeUnless { limit }, gaugeElectric = s.energy?.kind == EnergyKind.ELECTRIC,
-                )
+                if (limit) {
+                    // 한 줄만 보일 때는 연료가 가장 먼저 읽을 값이다
+                    val percent = s.energy?.percent?.roundToInt()?.coerceIn(0, 100)
+                    return Driving(percent?.let { "연료 $it%" } ?: "연료 모름", null, null)
+                }
+                // 연료는 오른쪽 카드에 있으니 큰 글자는 이유를 쓴다. 그림은 첫 화면과 같은 설명 그림("이득"만, 금액 없음)
+                val scene = if (s.energy?.kind == EnergyKind.ELECTRIC) null else DriveScene.Route("이득")
+                return Driving(reason, null, null, cards = cards(scene))
             }
             // 한눈에 읽을 값은 이득 금액이라 그것을 큰 글자로, 어디인지는 보조 줄로 쓴다(정차 카드와 같은 순서)
             val b = r.best
@@ -155,21 +183,29 @@ sealed interface ScreenModel {
                 sub = "$place · 우회 ${km(b.detourM)}".takeUnless { limit },
                 addWaypoint = b.station,
                 mainGain = true,
-                pin = DrivePin.GAIN.takeUnless { limit },
                 buttonLabel = visitLabel(b.station.name),
+                cards = cards(gainScene),
             ) else Driving(
                 main = place,
                 sub = "가까운 곳이라 차이가 작아요".takeUnless { limit },
                 addWaypoint = b.station,
-                pin = DrivePin.PLAIN.takeUnless { limit },
                 buttonLabel = visitLabel(b.station.name),
+                cards = cards(DriveScene.Pin(DrivePin.PLAIN)),
             )
         }
+
+        /** 주행 중 운행 카드: 금액과 설명 한 줄. 타임라인·항목 수·계산 방법은 정차 중에만 */
+        private fun driveTrip(s: AppState) = tripCard(s)?.let { DriveTrip(it.title, it.costLine, it.caption) }
 
         /** 다른 곳 표에 보일 수. 넓은 화면의 세로 공간을 채우면서 비교할 후보를 늘린다 */
         private const val OTHERS_SHOWN = 4
 
         private fun parked(s: AppState): Parked {
+            val start = startCard(s)
+            return Parked(fuelCard(s), start, if (start == null) recCard(s) else RecCard(title = "", message = null), tripCard(s))
+        }
+
+        private fun fuelCard(s: AppState): FuelCard {
             val e = s.energy
             val kind = e?.kind ?: EnergyKind.FUEL
             val percent = e?.percent?.roundToInt()?.coerceIn(0, 100)
@@ -177,7 +213,7 @@ sealed interface ScreenModel {
                 e?.amount?.let { "${"%.1f".format(it)} / ${"%.0f".format(e.capacity ?: 0.0)} ${e.kind.unit}" + if (e.origin == EnergyOrigin.DEMO) " (데모)" else "" },
                 "위치 데모(직선 이동)".takeIf { s.location?.origin == LocationOrigin.NAVI_SIMULATED },
             ).joinToString(" · ").ifEmpty { null }
-            val fuel = FuelCard(
+            return FuelCard(
                 title = kind.label,
                 percentText = percent?.let { "$it%" } ?: "모름",
                 percent = percent,
@@ -186,8 +222,6 @@ sealed interface ScreenModel {
                 efficiencyLine = if (kind == EnergyKind.FUEL) efficiencyLine(MyEfficiency.of(s.trips)) else null,
                 priceLine = "단가 ${"%,.0f".format(s.prices.of(kind))}원/${kind.unit} · ${s.prices.basis(kind)}",
             )
-            val start = startCard(s)
-            return Parked(fuel, start, if (start == null) recCard(s) else RecCard(title = "", message = null), tripCard(s))
         }
 
         /** 목적지·경유지가 없고 연료차일 때(전기차는 충전소 추천이 준비 중이라 그 안내를 보인다) */

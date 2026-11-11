@@ -32,7 +32,7 @@ Pleos Connect(현대자동차그룹 차량 인포테인먼트)에서 동작하�
 
 ## 차량 정책 (필수)
 
-- 주행/정차 판단은 `CarUxRestrictions`만 따른다. 주행 중에는 큰 글자 한 줄 + 보조 한 줄과 내비 경유지 추가처럼 단순한 것만 보여 준다. 탐색·목록·설정은 정차 중에만. `LIMIT_CONTENT` 규제가 켜지면 한 줄만 보여 준다.
+- 주행/정차 판단은 `CarUxRestrictions`만 따른다. 주행 중에는 큰 글자 한 줄 + 보조 한 줄과 내비 경유지 추가처럼 단순한 것만 보여 준다(정차 화면과 같은 두 열 카드이되 카드마다 큰 값 한 줄 + 설명 한 줄, 그림은 멈춤). 탐색·목록·설정은 정차 중에만. `LIMIT_CONTENT` 규제가 켜지면 한 줄만 보여 준다.
 - 주행 중 표시가 필요한 Activity에는 `distractionOptimized` 메타데이터를 선언한다.
 - 최상단 화면에서 Back 하드키를 누르면 종료하지 않고 `moveTaskToBack(true)`로 숨긴다.
 - 필수 조작은 터치만으로 끝나야 한다. CCP(다이얼)는 지원하지 않는다고 선언한다(`com.hmg.rotary.ROTARY_SUPPORTED`=false).
