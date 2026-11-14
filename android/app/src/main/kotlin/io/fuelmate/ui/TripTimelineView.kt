@@ -68,6 +68,12 @@ class TripTimelineView(context: Context, private val p: Palette) : View(context)
             invalidate()
             onFrame?.invoke()
         }
+        // 끝난 뒤 한 번 더 알린다. 연출 중 금액은 10원 단위로 내려 세므로, 끝나면 모델의 금액(반올림)으로 바꿔 보여야 한다
+        addListener(object : android.animation.AnimatorListenerAdapter() {
+            override fun onAnimationEnd(animation: android.animation.Animator) {
+                onFrame?.invoke()
+            }
+        })
     }
 
     init {
