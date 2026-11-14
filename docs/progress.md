@@ -237,7 +237,7 @@
 
 - [x] 뼈대: `:core`(상태 스토어, 급정거 판정, 거리계, 데모 궤적) 테스트 20개, `:app` 수집 서비스 + 상태 화면. 에뮬레이터에서 설치·실행, 데모 경로 재생 확인(2026-11-04)
 - [x] 저장소 이름 변경(GitHub `AndyDevLog/fuel-mate`, 로컬 `~/Developer/fuel-mate`)(2026-11-04)
-- [ ] 새 서명 키(사용자, `~/.android-keys/fuel-mate/`)
+- [x] 새 서명 키(2026-11-15, 사용자): `~/.android-keys/fuel-mate/release.jks`(PKCS12, RSA 2048, `CN=Fuel Mate`, 별칭 `fuelmate`)와 `keystore.properties`. release 서명은 v2·v3(Pleos minSdk 28 요구 이유가 서명 키 로테이션·리니지라 v3를 켬)
 - [x] 차량 에너지 어댑터(2026-11-04): 아래 "에너지 어댑터" 참고. `:core` 테스트 29개
 - [x] 데모 소비를 Virtual Console 주행(D + ACCEL·BRAKE)으로 확인(2026-11-04)
 - [x] 운행 기록(2026-11-04): 아래 "운행 기록" 참고. `:core` 테스트 38개
@@ -260,5 +260,9 @@
 - [x] 기획서 원문을 지금 앱에 맞춤(2026-11-11): 첫 화면, 들르기·바꾸기, 지난 운행 타임라인, 주행 화면 그림, 테스트 89개, 쓰는 내비 API, 진행 상황. 그림은 5장(첫 화면, 추천 카드, 주행, 들르기 후 내비, 지난 운행)으로 바꿈
 - [ ] 기획서 캡처 5장 다시 찍기(목적지 판교역, 주행·운행은 Virtual Console로 사용자) → `fill_form.py`로 docx 다시 만들기 → Word 문서 검사
 - [ ] 3km 달렸을 때 재검색을 에뮬레이터에서 확인(Virtual Console 주행은 사용자, 직선 이동과 목적지 변경 재검색은 확인함)
-- [ ] 시연 영상, release APK(`apk/`), README
+- [x] release APK와 README(2026-11-15): `apk/FuelMate_FuelMate_release.apk`(팀명 FuelMate, 오피넷 키 포함, 사용자 결정: 공개 기간이 끝나면 키 재발급). 에뮬레이터에서 앱을 지우고 새로 깔아 첫 실행 확인: 권한 대화상자 두 번(속도는 "위치 정보"로 보임, 알림), 유가·주유소 검색·추천. README는 제출 요건(에뮬레이터 2.1.0, 2560×1440·160dpi, APK 위치, 실행 방법, 테스트 환경)에 맞춰 새로 씀
+  - 알아 둘 것: 에뮬레이터 가상 와이파이(AndroidWifi) 연결이 끊겨 있으면 UnknownHostException으로 주유소 검색이 실패한다. 설정 → 연결 → Wi-Fi에서 AndroidWifi를 누르면 다시 붙는다(`cmd wifi connect-network`는 셸 권한으로 막힘)
+- [ ] 시연 영상
+- [ ] 접수 메일: 저장소 주소 + 최종 커밋 해시, 서명한 동의서. 11/16(월)까지 저장소 공개 전환, 11/23까지 유지(공지 7)
+- [ ] 끝나면 오피넷 인증키 재발급(제출 APK에 들어 있음)
 - [ ] Pleos 문의([pivot-fuel.md](pivot-fuel.md) 11장): 접수 전에는 보내지 않고 지금 상태로 제출하기로 함(2026-11-05, 사용자 결정). 2차 PT 전에 필요하면 다시 정한다

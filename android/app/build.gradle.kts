@@ -55,6 +55,9 @@ android {
                 storePassword = keystoreProps.getProperty("storePassword")
                 keyAlias = keystoreProps.getProperty("keyAlias")
                 keyPassword = keystoreProps.getProperty("keyPassword")
+                // Pleos는 차량 보안 요건(서명 키 로테이션·리니지)으로 minSdk 28을 요구한다. 키 로테이션은 v3 서명이라 v2와 함께 켠다
+                enableV2Signing = true
+                enableV3Signing = true
             }
         }
     }
