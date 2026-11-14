@@ -120,6 +120,8 @@ CautionPoint(id: String, type: CautionPointType, remainDistance: Int)
 - 경유지를 넣기 전 남은 거리: `onDrivingInfo`는 넣기 전에는 오지 않았고, `getDestinationInfo()` → `DestinationInfo.remainDistance`가 경로 거리와 맞게 왔다(2,300m, 14,000m)
 - ⚠️ `WaypointChangedInfo.routeStartInfo.distance`는 **첫 경유지까지 거리**다(2026-11-06 확인). 2,300m 경로에 경유지를 넣자 이 값은 4,800m, `onDrivingInfo`는 목적지 9,200m·경유지 [4,800]m, `remainDistance`는 9,200m였다. 넣은 뒤의 목적지 거리는 `onDrivingInfo`·`remainDistance`로 받고, 실제 우회 = 넣은 뒤 목적지 거리 − 넣기 전 목적지 거리(여기서는 6,900m). 예전에 본 "10000 → 4800"도 이 값을 잘못 비교한 것이다. 앱은 말이 안 되는 우회 값(음수·20km 초과)이면 "실제 우회 거리는 확인하지 못함"으로 표시한다
 - 이미 경유지로 들어간 곳을 다시 넣으면 `onWaypointChanged`가 오지 않았다
+  - (2026-11-15 재현) 앱만 다시 시작하면 앱은 내비에 남은 경유지를 모른다. 이때 같은 곳을 넣으면 내비는 경로도 다시 짜지 않고 아무 응답도 주지 않는다
+  - (2026-11-15 javap, 에뮬레이터) `getWaypointInfo()` → `onWayPointInfo(List<WaypointInfo>)`. `WaypointInfo`에는 `name`, `address`, 좌표, `remainDistance`, `remainTime`, `poiId`가 있다. 안내 중 경유지 이름 목록을 받을 수 있어, 앱은 넣기 전에 이 목록으로 이미 있는지 본다. `DrivingInfo.waypoints`의 `DrivingState.name`에도 경유지 이름이 온다
 - 목적지 도착 콜백은 `onDestinationArrived(DestinationArrivedInfo)`, 경유지 도착은 `onWayPointArrived(WaypointArrivedInfo)`다(javap. 위 표의 이름에는 인자가 빠져 있다)
 - `requestRoute(RouteInfo(...))`(주유소 좌표·이름만, POI ID 없음)로 안내가 시작되고 음성 안내가 나온다
 

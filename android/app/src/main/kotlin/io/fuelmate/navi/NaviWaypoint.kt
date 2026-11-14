@@ -13,6 +13,7 @@ import ai.pleos.playground.navi.data.RouteInfo
 import ai.pleos.playground.navi.data.RouteStartInfo
 import ai.pleos.playground.navi.data.RouteStateInfo
 import ai.pleos.playground.navi.data.WaypointChangedInfo
+import ai.pleos.playground.navi.data.WaypointInfo
 import ai.pleos.playground.navi.helper.NaviHelper
 import ai.pleos.playground.navi.helper.listener.NaviHelperEventListener
 import android.content.Context
@@ -59,6 +60,47 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
     /** @property previous 넣기 전 화면 상태. 응답이 없으면 이 상태로 되돌린다 */
     private class Pending(val station: Station, val beforeM: Int?, val sinceMs: Long, val previous: WaypointState?)
 
+    /**
+     * 응답을 기다리다 포기한 요청. 달리는 중에는 내비가 경로를 다시 짜느라 추가 응답이 15초를 넘길 수 있다
+     * (2026-11-15 에뮬레이터 시속 100km: 내비에는 경유지가 들어갔는데 응답이 시간 안에 오지 않았다). 그래서 [LATE_MS] 동안은 늦은 응답도 받는다
+     */
+    private var late: Pending? = null
+    private var lateSinceMs = 0L
+
+    /**
+     * 내비 경로에 지금 들어 있는 경유지 이름. 안내 중이면 [poll]에서 `getWaypointInfo()`로 받는다.
+     * 앱이 다시 시작되면 앞서 넣은 경유지를 모르는데, 이미 있는 곳을 다시 넣으면 내비가 아무 응답도 주지 않는다(2026-11-15 재현).
+     * 그래서 넣기 전에 이 목록을 보고, 이미 있으면 넣지 않고 경유 중으로 표시한다
+     */
+    private var naviWaypoints: List<String> = emptyList()
+
+    /** 기다리는 요청의 주유소가 내비 경유지 목록(onWayPointInfo·onDrivingInfo)에 보이면 들어간 것으로 본다 */
+    private fun checkListed(names: List<String>) {
+        val p = waiting() ?: return
+        if (p.station.name !in names) return
+        // 요청 직후에 이미 목록에 있으면 원래 들어 있던 경유지다. 내비가 새로 넣는 데는 미리보기 카운트다운 때문에 5초 넘게 걸린다
+        val already = SystemClock.elapsedRealtime() - p.sinceMs < ALREADY_THERE_MS
+        confirmAdded(p, if (already) "이미 내비 경로에 있음" else "내비 경로의 경유지 목록", detourKnown = !already)
+    }
+
+    /** 아직 응답을 기다리는 요청, 또는 포기했지만 늦은 응답을 받아 줄 요청 */
+    private fun waiting(): Pending? =
+        pending ?: late?.takeIf { SystemClock.elapsedRealtime() - lateSinceMs < LATE_MS }
+
+    /**
+     * 경유지가 들어간 것을 확인했다(추가 응답, 또는 내비 경로의 경유지 목록). 이어서 다시 계산된 목적지 거리를 기다린다.
+     * [detourKnown]이 false면 넣기 전 거리에 이미 그 경유지가 들어 있었을 수 있어 실제 우회를 "확인 못 함"으로 둔다
+     */
+    private fun confirmAdded(p: Pending, how: String, detourKnown: Boolean = true) {
+        pending = null
+        late = null
+        Log.i("경유지 추가됨($how): ${p.station.name}")
+        publish(WaypointState(p.station.id, p.station.name, asDestination = false, added = true))
+        awaitingAfter = if (detourKnown) p else Pending(p.station, null, p.sinceMs, p.previous)
+        awaitingSinceMs = SystemClock.elapsedRealtime()
+        navi.getDestinationInfo()
+    }
+
     /** 경유지 바꾸기: 앞의 것을 빼는 중이거나([removed] false), 뺀 뒤 목적지 거리를 기다리는 중 */
     private class Replace(val next: Station, val sinceMs: Long, val previous: WaypointState) {
         var removed = false
@@ -83,6 +125,8 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
                 if (nowMs - p.sinceMs > PENDING_TIMEOUT_MS) {
                     Log.w("경유지 추가 응답 없음: ${p.station.name}")
                     pending = null
+                    late = p
+                    lateSinceMs = nowMs
                     publish(p.previous)
                 }
             }
@@ -103,6 +147,7 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
             // 경유지를 넣는 동안 잠깐 SAFE_GUIDING이 된다. 그 사이에는 넣기 전 거리를 지우지 않는다
             if (!now && pending == null && awaitingAfter == null && replace == null) {
                 remainM = null
+                naviWaypoints = emptyList()
                 // 도착·취소로 안내가 끝났으면 화면의 "경유 중/안내 중"을 지운다. 목적지도 없어지므로 첫 화면으로 돌아간다
                 if (current != null) {
                     Log.i("안내가 끝나 경유 상태를 지움")
@@ -112,6 +157,9 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
         }
 
         override fun onDrivingInfo(drivingInfo: DrivingInfo) {
+            // 추가 응답이 늦거나 오지 않아도, 내비 경로의 경유지 목록에 그 주유소가 있으면 들어간 것이다.
+            // 그러면 아래에서 이 값(경유지를 넣은 뒤의 목적지 거리)으로 바로 실제 우회를 구한다
+            checkListed(drivingInfo.waypoints.map { it.name })
             val d = drivingInfo.destination.distance
             if (d > 0 && onBaseDistance(d)) return
             if (d > 0 && pending == null) {
@@ -127,6 +175,12 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
             if (d > 0 && onBaseDistance(d)) return
             if (d > 0 && pending == null) resolveDetour(d)
             if (routing && d > 0 && pending == null) remainM = d
+        }
+
+        // 경유지 목록. 좌표가 들어 있어 이름만 쓰고 로그에 남기지 않는다
+        override fun onWayPointInfo(waypointInfoList: List<WaypointInfo>) {
+            naviWaypoints = waypointInfoList.map { it.name }
+            checkListed(naviWaypoints)
         }
 
         override fun onRouteStarted(routeStartInfo: RouteStartInfo) {
@@ -153,14 +207,9 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
                 navi.getDestinationInfo()
                 return
             }
-            val p = pending ?: return
             if (waypointChangedInfo.cmdType != WaypointCmdType.ADD) return
-            pending = null
-            Log.i("경유지 추가됨: ${p.station.name}")
-            publish(WaypointState(p.station.id, p.station.name, asDestination = false, added = true))
-            awaitingAfter = p
-            awaitingSinceMs = SystemClock.elapsedRealtime()
-            navi.getDestinationInfo()
+            val p = waiting() ?: return
+            confirmAdded(p, if (p === pending) "추가 응답" else "늦은 추가 응답")
         }
 
         override fun onError(errorCode: NaviErrorCode) = Log.w("내비 오류 $errorCode")
@@ -189,6 +238,7 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
         override fun run() {
             navi.getRouteStateInfo()
             if (routing || replace != null) navi.getDestinationInfo()
+            if (routing) navi.getWaypointInfo()
             main.postDelayed(this, POLL_MS)
         }
     }
@@ -219,6 +269,11 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
             navi.removeWaypoint(WaypointIndex.FIRST)
             Log.i("경유지 바꾸기: ${cur.stationName} 빼고 ${station.name} 넣기")
             publish(WaypointState(station.id, station.name, asDestination = false))
+        } else if (routing && station.name in naviWaypoints) {
+            // 이미 내비 경로에 있다(앱이 다시 시작돼 몰랐다). 다시 넣으면 응답이 없으니 넣지 않고 경유 중으로 표시한다. 우회 거리는 모른다
+            awaitingAfter = null
+            Log.i("이미 내비 경로에 있는 경유지: ${station.name}")
+            publish(WaypointState(station.id, station.name, asDestination = false, added = true))
         } else if (routing) {
             awaitingAfter = null
             requestAdd(station, remainM, previous = cur)
@@ -234,8 +289,11 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
     private fun requestAdd(station: Station, beforeM: Int?, previous: WaypointState?) {
         val p = station.point
         pending = Pending(station, beforeM, SystemClock.elapsedRealtime(), previous)
+        late = null
         navi.addWaypoint(RequestWaypointInfo(p.lat, p.lon, station.name, WaypointIndex.FIRST, "", "", "", ""))
         Log.i("경유지 추가 요청: ${station.name}")
+        // 목록을 바로 다시 묻는다. 마지막으로 받은 목록이 늦어 이미 있던 경유지를 몰랐어도 여기서 알아챈다
+        navi.getWaypointInfo()
         publish(WaypointState(station.id, station.name, asDestination = false))
     }
 
@@ -245,5 +303,9 @@ class NaviWaypoint(context: Context, private val dispatch: (Action) -> Unit) {
         const val AWAIT_AFTER_MS = 15_000L
         /** 넣기 응답을 기다리는 시간. 에뮬레이터에서 응답까지 7초 걸렸다(2026-11-08) */
         const val PENDING_TIMEOUT_MS = 15_000L
+        /** 포기한 뒤에도 늦은 추가 응답·경유지 목록을 받아 주는 시간 */
+        const val LATE_MS = 60_000L
+        /** 요청 뒤 이 안에 경유지 목록에 보이면 원래 있던 경유지로 본다 */
+        const val ALREADY_THERE_MS = 3_000L
     }
 }
